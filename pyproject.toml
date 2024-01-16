@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "CTOD"
+version = "1.0.0"
+description = "Cesium Terrain On Demand"
+authors = ["tebben <ebben.tim@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+morecantile = "^5.0.0"
+rio-tiler = "^6.2.7"
+pydelatin = "^0.2.7"
+quantized-mesh-encoder = "^0.4.3"
+tornado = "^6.4"
+scipy = "^1.11.4"
+triangle = "^20230923"
+shapely = "^2.0.2"
+
+
+[tool.poetry.group.dev.dependencies]
+matplotlib = "^3.8.2"
+meshio = "^5.3.4"
+plotly = "^5.18.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
