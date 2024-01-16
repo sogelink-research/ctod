@@ -3,7 +3,7 @@ var module, pane, terrainFolder, layerFolder, materialFolder, urlParams;
 var minZoomValue = 1;
 var maxZoomValue = 21;
 var cogValue =
-  "ctod/files/test_cog.tif";
+  "./ctod/files/test_cog.tif";
 var resamplingValue = "bilinear";
 
 document.addEventListener("DOMContentLoaded", async () => {

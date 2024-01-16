@@ -48,10 +48,10 @@ class BaseHandler(web.RequestHandler):
         """Get the COG path from the request
 
         Returns:
-            str: The COG path. Defaults to ctod/files/test_cog.tif
+            str: The COG path. Defaults to ./ctod/files/test_cog.tif
         """
         
-        return self.get_argument("cog", default="ctod/files/test_cog.tif")
+        return self.get_argument("cog", default="./ctod/files/test_cog.tif")
 
     def get_meshing_method(self) -> str:
         """Get the method used for meshing

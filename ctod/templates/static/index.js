@@ -50,7 +50,7 @@ function initializeLayers() {
   const maxZoom = urlParams.get("maxZoom") || 21;
   const cog =
     urlParams.get("cog") ||
-    "ctod/files/test_cog.tif";
+    "./ctod/files/test_cog.tif";
   setTerrainProvider(minZoom, maxZoom, cog, "bilinear");
 
   streetsLayer.show = true;

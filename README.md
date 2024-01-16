@@ -65,7 +65,7 @@ python app.py ./cache
 Example running docker with a mounted volume and caching enabled
 
 ```sh
-docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ctod
+docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ghcr.io/sogelink-research/ctod:latest
 ```
 
 ## Example adding TerrainProvider to Cesium
@@ -141,7 +141,7 @@ Returns a sample Cesium viewer
 #### Example
 
 ```sh
-http://localhost:5000?minZoom=1&maxZoom=20&cog=ctod/files/test_cog.tif
+http://localhost:5000?minZoom=1&maxZoom=20&cog=./ctod/files/test_cog.tif
 ```
 
 ### Endpoint: `/tiles/layer.json`
@@ -161,7 +161,7 @@ Dynamically generates a layer.json based on the COG.
 #### Example
 
 ```sh
-http://localhost:5000/tiles/layer.json?minZoom=14&maxZoom=20&cog=ctod/files/test_cog.tif
+http://localhost:5000/tiles/layer.json?minZoom=14&maxZoom=20&cog=./ctod/files/test_cog.tif
 ```
 
 ### Endpoint: `/tiles/{z}/{x}/{y}.terrain`
@@ -184,5 +184,5 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 #### Example
 
 ```sh
-http://localhost:5000/tiles/17/134972/21614.terrain?minZoom=1&maxZoom=20&cog=ctod/files/test_cog.tif
+http://localhost:5000/tiles/17/134972/21614.terrain?minZoom=1&maxZoom=20&cog=./ctod/files/test_cog.tif
 ```
