@@ -1,6 +1,6 @@
 # Cesium Terrain On Demand (CTOD)
 
-CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized Geotif (COG) file. The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
+CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized GeoTIFF (COG) file. The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
 
 ![CTOD](./img/ctod.jpg)
 
@@ -97,11 +97,11 @@ The CTOD service has a very basic tile caching option, tiles can be retrieved an
 
 ## Nodata
 
-Nodata values in the COG are automatically set to 0 else it is likely that the meshing will go wrong, for now nodata should be handled in the source data (COG) In a future version we can try to fill up the nodata values based on surounding pixels.
+Nodata values in the COG are automatically set to 0 else it is likely that the meshing will go wrong, for now nodata should be handled in the source data (COG) In a future version we can try to fill up the nodata values based on surrounding pixels.
 
 ## Stitching tiles
 
-With all the available methods to generate a mesh for a tiff we are facing the problem that we do not have shared vertices at tile edges as described by the quantized mesh standard. This results in seems between tiles because of possible height difference but also because the normals are only calculated for a tile and don't take adjecent tiles into account. In CTOD we solve this by requesting neighbouring tiles and make sure we have shared vertices and if needed average the height and normals. The terrain factory makes sure we download all needed data without duplicate request, the COG Processor processes the COG data making a mesh and normals, the Terrain Processor makes sure we have have shared edge vertices and the heights and normals are correct on the edges.
+With all the available methods to generate a mesh for a tiff we are facing the problem that we do not have shared vertices at tile edges as described by the [quantized mesh standard](https://github.com/CesiumGS/quantized-mesh). This results in seems between tiles because of possible height difference but also because the normals are only calculated for a tile and don't take adjecent tiles into account. In CTOD we solve this by requesting neighbouring tiles and make sure we have shared vertices and if needed average the height and normals. The terrain factory makes sure we download all needed data without duplicate request, the COG Processor processes the COG data making a mesh and normals, the Terrain Processor makes sure we have have shared edge vertices and the heights and normals are correct on the edges.
 
 ![CTOD: Non stitched tile](./img/normals.jpg)
 
@@ -173,12 +173,12 @@ Dynamically generates a layer.json based on the COG.
 #### Example
 
 ```sh
-http://localhost:5000/tiles/layer.json?minZoom=14&maxZoom=20&cog=./ctod/files/test_cog.tif
+http://localhost:5000/tiles/layer.json?maxZoom=20&cog=./ctod/files/test_cog.tif
 ```
 
 ### Endpoint: `/tiles/{z}/{x}/{y}.terrain`
 
-Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve empty tiles. maxZoom is handled in the generated layer.json.
+Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve empty tiles for zoom levels lower than minZoom. maxZoom is handled in the generated layer.json.
 
 #### Request
 
@@ -188,7 +188,6 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 #### Parameters
 
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
-- **maxZoom** : The max zoomlevel for the terrain, when lower than maxZoom for layer.json the service returns an empty terrain tile. Default (20)
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'bilinear'
 - **cog** (required): Path or URL to COG file.
 - **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
@@ -196,5 +195,5 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 #### Example
 
 ```sh
-http://localhost:5000/tiles/17/134972/21614.terrain?minZoom=1&maxZoom=20&cog=./ctod/files/test_cog.tif
+http://localhost:5000/tiles/17/134972/21614.terrain?minZoom=1&cog=./ctod/files/test_cog.tif
 ```
