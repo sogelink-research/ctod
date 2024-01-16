@@ -14,7 +14,7 @@ class TerrainHandler(BaseHandler):
     """Handle Cesium terrain requests using a grid based system 
     returning quantized mesh tiles.
     
-    Heights and normals are averaged between adjacent tiles to 
+    Heights and normals are averaged between adjecent tiles to 
     create a smooth transition between tiles.
     """
     

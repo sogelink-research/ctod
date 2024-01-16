@@ -4,6 +4,14 @@ CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynami
 
 ![CTOD](./img/ctod.jpg)
 
+## TL;DR
+
+```sh
+docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+```
+
+[Open demo viewer](http://localhost:5000)
+
 ## Features
 
 - Generate and fetch a layer.json derived from COG, accommodating all projections.
@@ -22,11 +30,11 @@ CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynami
 
 - Pass processor options
 - Add skipCache to viewer
-- Pydelatin or Martini support
+- Pydelatin and/or Martini support
 - Refactoring
 - Logging
-- Cleanup viewer
-- Move repository to Github (open-source)
+- Cleanup viewer code
+- Smaller docker image if possible
 
 ### V1.1
 
@@ -42,9 +50,17 @@ CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynami
 - quantized-mesh-encoder: Encode a mesh to a Quantized Mesh. (MIT)
 - morecantile: Tile Matrix Sets. (MIT)
 
-## Running CTOD locally
+## Run CTOD with Docker
 
-Create virtual environment, install and run the service.
+Example running CTOD using the docker image with a mounted volume and caching enabled.
+
+```sh
+docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+```
+
+## Run CTOD from source
+
+Create a virtual environment, install and run CTOD.
 
 ```sh
 python -m venv venv
@@ -54,18 +70,10 @@ poetry install
 python app.py
 ```
 
-To enable caching start the service with a path to the cache
+To enable caching start the service with a path to the cache.
 
 ```sh
-python app.py ./cache
-```
-
-## Run CTOD with Docker
-
-Example running docker with a mounted volume and caching enabled
-
-```sh
-docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+python app.py ./ctod_cache
 ```
 
 ## Example adding TerrainProvider to Cesium
@@ -117,7 +125,11 @@ When requesting neighbouring tiles we want to prevent duplicate requests to the 
 
 ### CogProcessor
 
+ToDo
+
 ### TerrainProcessor
+
+ToDo
 
 ## Endpoints
 
