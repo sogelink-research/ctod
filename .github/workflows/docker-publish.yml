@@ -67,7 +67,7 @@ jobs:
           context: "{{defaultContext}}"
           push: true
           #tags: ${{ steps.meta.outputs.tags }}
-          tags: ${{ github.repository }}:latest 
+          tags: ghcr.io/${{ github.repository }}:latest 
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
