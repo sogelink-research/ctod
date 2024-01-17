@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 from ctod.core.cog.cog_request import CogRequest
@@ -20,7 +21,7 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         
         # should not happen, in case it does return empty tile
         if main_cog.processed_data is None:
-            print("main_cog.processed_data is None")
+            logging.debug("main_cog.processed_data is None")
             quantized_empty_tile = generate_empty_tile(main_cog.tms, main_cog.z, main_cog.x, main_cog.y)
             return quantized_empty_tile
         

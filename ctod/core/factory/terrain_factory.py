@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 
 from ctod.core.cog.cog_request import CogRequest
@@ -15,7 +16,7 @@ class TerrainFactory:
     TerrainFactory checks if TerrainRequest are ready for precessing and if so, processes them.
     """
     
-    def __init__(self, cache_expiry_seconds=5):
+    def __init__(self, cache_expiry_seconds=10):
         self.cache_expiry_seconds = cache_expiry_seconds
         self.cache = {}
         self.terrain_requests = {}
@@ -143,5 +144,6 @@ class TerrainFactory:
 
             for key in keys_to_remove:
                 del self.cache[key]
-                
-        #print("terrain reqs:", len(self.terrain_requests), ", cache size:", len(self.cache))
+            
+        
+        logging.debug(f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache)}")

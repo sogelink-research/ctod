@@ -1,3 +1,5 @@
+import logging
+
 from asyncio import ensure_future
 from ctod.core import utils
 from ctod.core.terrain.terrain_request import TerrainRequest
@@ -21,7 +23,7 @@ class TerrainHandler(BaseHandler):
     def __init__(self, application, request, **kwargs):
         self.terrain_factory = kwargs.pop('terrain_factory')
         self.cog_processor = kwargs.pop('cog_processor')
-        self.tile_caching_path = kwargs.pop('tile_caching_path')
+        self.tile_cache_path = kwargs.pop('tile_cache_path')
         super(TerrainHandler, self).__init__(application, request, **kwargs)
 
     async def get(self, z: int, x: int, y: int):
@@ -52,7 +54,7 @@ class TerrainHandler(BaseHandler):
             try:
                 utils.get_tile_bounds(tms, x, y, z)
             except TileOutsideBounds:
-                print("outside bounds, this should never be reached, fix if it does")
+                logging.warn("outside bounds, this should never be reached, fix if it does")
                 return self.return_empty_terrain()
             
             # Always return an empty tile at 0 or requested zoom level is lower than min_zoom
@@ -121,8 +123,8 @@ class TerrainHandler(BaseHandler):
             bool: True if the tile was handled from the cache, False otherwise
         """
         
-        if self.tile_caching_path is not None:
-            cached_tile = get_tile_from_disk(self.tile_caching_path, cog, meshing_method, resampling_method, z, x, y)
+        if self.tile_cache_path is not None:
+            cached_tile = get_tile_from_disk(self.tile_cache_path, cog, meshing_method, resampling_method, z, x, y)
             if cached_tile is not None:
                 self._write_output(cached_tile)
                 return True
@@ -142,8 +144,8 @@ class TerrainHandler(BaseHandler):
             data (bytes): bytes of the .terrain tile (quantized mesh)
         """
         
-        if self.tile_caching_path is not None:
-            save_tile_to_disk(self.tile_caching_path, cog, meshing_method, resampling_method, z, x, y, data)     
+        if self.tile_cache_path is not None:
+            save_tile_to_disk(self.tile_cache_path, cog, meshing_method, resampling_method, z, x, y, data)     
     
     def _return_empty_terrain_tile_file(self):
         """Return an empty terrain tile from a file"""

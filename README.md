@@ -1,13 +1,13 @@
 # Cesium Terrain On Demand (CTOD)
 
-CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized GeoTIFF (COG) file. The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
+CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized GeoTIFF (COG). The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
 
 ![CTOD](./img/ctod.jpg)
 
 ## TL;DR
 
 ```sh
-docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -CTOD_LOGGING_LEVEL=info -e CTOD_TILE_CACHE_PATH=/cache ghcr.io/sogelink-research/ctod:latest
 ```
 
 [Open the local running demo viewer](http://localhost:5000)
@@ -21,7 +21,7 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache 
 - Empty tiles with geodetic surface normals.
 - In-memory cache for seamlessly stitching neighboring tiles and preventing redundant requests.
 - CogProcessor and TerrainGenerator for diverse terrain serving implementations (Grid, Pydelatin, custom).
-- Simple tile caching implementation
+- Basic tile caching implementation
 - Basic Cesium viewer included for debugging and result visualization.
 
 ## ToDo
@@ -33,13 +33,12 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache 
 - Test if we can improve performance by reusing readers for the COG (Reader Pool)
 - Pydelatin and/or Martini support
 - Refactoring
-- Logging
 - Cleanup viewer code
 
 ### V1.1
 
 - Fill Nodata values on the fly
-- Scripts to seed the cache
+- Scripts to seed and clean the cache
 - Extension support: Metadata, Watermask
 - Serverless functions
 
@@ -50,12 +49,22 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache 
 - [quantized-mesh-encoder](https://github.com/kylebarron/quantized-mesh-encoder): A fast Python Quantized Mesh encoder. (MIT)
 - [morecantile](https://github.com/developmentseed/morecantile): Construct and use OGC TileMatrixSets. (MIT)
 
+## Settings
+
+The following options can be set by supplying args to app.py or setting the environment variables.
+
+|argument|environment variable|description|default|
+|-|-|-|-|
+|--tile-cache-path|CTOD_TILE_CACHE_PATH|Path to cache directory, if not set caching is disabled (Default)|None|
+|--logging-level|CTOD_LOGGING_LEVEL|The logging level, options: ['debug', 'info', 'warning', 'error', 'critical']|info|
+|--port|CTOD_PORT|Port to run the service on|5000|
+
 ## Run CTOD with Docker
 
 Example running CTOD using the docker image with a mounted volume and caching enabled.
 
 ```sh
-docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHE_PATH=/cache ghcr.io/sogelink-research/ctod:latest
 ```
 
 ## Run CTOD from source
@@ -70,15 +79,15 @@ poetry install
 python app.py
 ```
 
-To enable caching start the service with a path to the cache.
+To enable caching, supply --tile-cache-path path to app.py.
 
 ```sh
-python app.py ./ctod_cache
+python app.py --tile-cache-path ./ctod_cache
 ```
 
 ## Example adding TerrainProvider to Cesium
 
-To use the CTOD terrain tiles in Cesium, create and set a `CesiumTerrainProvider` initialized with the url to the CTOD service. The layer.json file will be requested on the /tiles endpoint first followed by .terrain requests while passing the options to the endpoints.
+To use the CTOD terrain tiles in Cesium, create and set a `CesiumTerrainProvider` initialized with the url to the CTOD service. The layer.json file will be requested on the /tiles endpoint followed by .terrain requests while passing the options to the endpoints.
 
 ```js
 viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
@@ -91,9 +100,11 @@ viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
 
 ToDo
 
+gdalbuildvrt cog_vrt.vrt cog_left.tif cog_right.tif
+
 ## Caching
 
-The CTOD service has a very basic tile caching option, tiles can be retrieved and saved by supplying a cache path when starting app.py or setting the environment variable `CTOD_TILE_CACHING_PATH`. Based on this path and the requested cog, meshing method and resampling method a tile can be saved and retrieved from disk. the cog path/url will be encoded into a hex string. When a service is started with caching the cache can be circumvented by adding `ignoreCache=True` to the terrain request.
+The CTOD service has a very basic tile caching option, tiles can be retrieved and saved by supplying a cache path when starting app.py or setting the environment variable `CTOD_TILE_CACHE_PATH`. Based on this path and the requested cog, meshing method and resampling method a tile can be saved and retrieved from disk. the cog path/url will be encoded into a hex string. When a service is started with caching the cache can be circumvented by adding `ignoreCache=True` to the terrain request.
 
 ## Nodata
 
