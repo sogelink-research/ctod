@@ -1254,13 +1254,13 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rio-tiler"
-version = "6.2.10"
+version = "6.3.0"
 description = "User friendly Rasterio plugin to read raster datasets."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "rio_tiler-6.2.10-py3-none-any.whl", hash = "sha256:06644a22ae19d79b7f546c40527905874a98180a2a66f381f943170a34cdb150"},
-    {file = "rio_tiler-6.2.10.tar.gz", hash = "sha256:f376d18d8d75096a7adcfbc0d336627076a7ea57e12a41921b899521113da69b"},
+    {file = "rio_tiler-6.3.0-py3-none-any.whl", hash = "sha256:766694485113a1bf5d4d67104ea2dc37d4dbbc7730a530690204d9f9c3c104e8"},
+    {file = "rio_tiler-6.3.0.tar.gz", hash = "sha256:6fa06aa776a32d458a385268c36cf0bb50c501324d3bef410381435c3f869fd8"},
 ]
 
 [package.dependencies]
@@ -1532,4 +1532,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "478b58aeaa517c92a6e608ad1059e8d4c2ec1f481034135b9d85df3f3ad5c736"
+content-hash = "8b3a927dffa2ce47ffe8d71e0987de5e88066b04ceabd57e3f965e349fb410fd"

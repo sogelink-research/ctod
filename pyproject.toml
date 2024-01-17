@@ -8,20 +8,19 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-morecantile = "^5.0.0"
-rio-tiler = "^6.2.7"
+morecantile = "^5.1.0"
+rio-tiler = "^6.3.0"
 pydelatin = "^0.2.7"
 quantized-mesh-encoder = "^0.4.3"
 tornado = "^6.4"
-scipy = "^1.11.4"
 triangle = "^20230923"
-shapely = "^2.0.2"
-
 
 [tool.poetry.group.dev.dependencies]
 matplotlib = "^3.8.2"
 meshio = "^5.3.4"
 plotly = "^5.18.0"
+scipy = "^1.11.4"
+shapely = "^2.0.2"
 
 [build-system]
 requires = ["poetry-core"]
