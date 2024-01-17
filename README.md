@@ -26,7 +26,7 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -CTOD_LOGGING_L
 
 ## ToDo
 
-### V1.0
+### V1.0 (In progress)
 
 - Pass processor options
 - Add skipCache to viewer
@@ -35,12 +35,11 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -CTOD_LOGGING_L
 - Refactoring
 - Cleanup viewer code
 
-### V1.1
+### Future work (V1.1)
 
 - Fill Nodata values on the fly
 - Scripts to seed and clean the cache
 - Extension support: Metadata, Watermask
-- Serverless functions
 
 ## Settings
 
@@ -81,70 +80,6 @@ To enable caching, supply --tile-cache-path path to app.py.
 ```sh
 python app.py --tile-cache-path ./ctod_cache
 ```
-
-## Example adding TerrainProvider to Cesium
-
-To use the CTOD terrain tiles in Cesium, create and set a `CesiumTerrainProvider` initialized with the url to the CTOD service. The layer.json file will be requested on the /tiles endpoint followed by .terrain requests while passing the options to the endpoints.
-
-```js
-viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
-    url: `https://ctod-service/tiles?minZoom=1&maxZoom=21&cog=MyCogPath`,
-    requestVertexNormals: true
-});
-```
-
-## Example preparing COG
-
-ToDo
-
-gdalbuildvrt cog_vrt.vrt cog_left.tif cog_right.tif
-
-## Caching
-
-The CTOD service has a very basic tile caching option, tiles can be retrieved and saved by supplying a cache path when starting app.py or setting the environment variable `CTOD_TILE_CACHE_PATH`. Based on this path and the requested cog, meshing method and resampling method a tile can be saved and retrieved from disk. the cog path/url will be encoded into a hex string. When a service is started with caching the cache can be circumvented by adding `ignoreCache=True` to the terrain request.
-
-## Nodata
-
-Nodata values in the COG are automatically set to 0 else it is likely that the meshing will go wrong, for now nodata should be handled in the source data (COG) In a future version we can try to fill up the nodata values based on surrounding pixels.
-
-## Stitching tiles
-
-With all the available methods to generate a mesh for a tiff we are facing the problem that we do not have shared vertices at tile edges as described by the [quantized mesh standard](https://github.com/CesiumGS/quantized-mesh). This results in seems between tiles because of possible height difference but also because the normals are only calculated for a tile and don't take adjecent tiles into account. The seems can be spotted in the left part of the image below. In CTOD we solve this by requesting neighbouring tiles and make sure we have shared vertices and if needed average the height and normals. The terrain factory makes sure we download all needed data without duplicate request, the COG Processor processes the COG data making a mesh and normals, the Terrain Processor makes sure we have have shared edge vertices and the heights and normals are correct on the edges.
-
-![CTOD: Non stitched tile](./img/normals.jpg)
-
-*Stitching: Averaged normals between adjecent tiles*
-
-## Used libraries
-
-- [rio-tiler](https://github.com/cogeotiff/rio-tiler): Rasterio plugin to read raster datasets. (BSD-3-Clause)
-- [pydelatin](https://github.com/kylebarron/pydelatin): Terrain mesh generation. (MIT)
-- [quantized-mesh-encoder](https://github.com/kylebarron/quantized-mesh-encoder): A fast Python Quantized Mesh encoder. (MIT)
-- [morecantile](https://github.com/developmentseed/morecantile): Construct and use OGC TileMatrixSets. (MIT)
-
-### TerrainFactory
-
-When requesting neighbouring tiles we want to prevent duplicate requests to the COG, this is handled in the TerrainFactory.
-
-1) Terrain request comes in
-2) Spawn cog request for terrain and adjecent tiles for each terrain request
-3) Check if Processed COG is in cache, yes -> set cog data in terrain request, no -> add to requests queue if not added yet.
-4) Download COG data and process using a COG processor
-5) Add data to cache
-6) Set COG data for all terrain requests that need this data
-7) Check if a terrain requests has all the COG data it needs
-8) Run the terrain processor
-9) Return Quantized Mesh
-
-![CTOD: TerrainFactory](./img/ctod_terrain_factory.jpg)
-
-### CogProcessor
-
-ToDo
-
-### TerrainProcessor
-
-ToDo
 
 ## Endpoints
 
@@ -212,3 +147,68 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 ```sh
 http://localhost:5000/tiles/17/134972/21614.terrain?minZoom=1&cog=./ctod/files/test_cog.tif
 ```
+
+## More info
+
+### How to use in Cesium
+
+To use the CTOD terrain tiles in Cesium, create and set a `CesiumTerrainProvider` initialized with the url to the CTOD service. The layer.json file will be requested on the /tiles endpoint followed by .terrain requests while passing the options to the endpoints.
+
+```js
+viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
+    url: `https://ctod-service/tiles?minZoom=1&maxZoom=21&cog=MyCogPath`,
+    requestVertexNormals: true
+});
+```
+
+### Example preparing COG
+
+ToDo
+
+### Caching
+
+The CTOD service has a very basic tile caching option, tiles can be retrieved and saved by supplying a cache path when starting app.py or setting the environment variable `CTOD_TILE_CACHE_PATH`. Based on this path and the requested cog, meshing method and resampling method a tile can be saved and retrieved from disk. the cog path/url will be encoded into a hex string. When a service is started with caching the cache can be circumvented by adding `ignoreCache=True` to the terrain request.
+
+### Nodata
+
+Nodata values in the COG are automatically set to 0 else it is likely that the meshing will go wrong, for now nodata should be handled in the source data (COG) In a future version we can try to fill up the nodata values based on surrounding pixels.
+
+### Stitching tiles
+
+With all the available methods to generate a mesh for a tiff we are facing the problem that we do not have shared vertices at tile edges as described by the [quantized mesh standard](https://github.com/CesiumGS/quantized-mesh). This results in seems between tiles because of possible height difference but also because the normals are only calculated for a tile and don't take adjecent tiles into account. The seems can be spotted in the left part of the image below. In CTOD we solve this by requesting neighbouring tiles and make sure we have shared vertices and if needed average the height and normals. The terrain factory makes sure we download all needed data without duplicate request, the COG Processor processes the COG data making a mesh and normals, the Terrain Processor makes sure we have have shared edge vertices and the heights and normals are correct on the edges.
+
+![CTOD: Non stitched tile](./img/normals.jpg)
+
+*Stitching: Averaged normals between adjecent tiles*
+
+### TerrainFactory
+
+When requesting neighbouring tiles we want to prevent duplicate requests to the COG, this is handled in the TerrainFactory.
+
+1) Terrain request comes in
+2) Spawn cog request for terrain and adjecent tiles for each terrain request
+3) Check if Processed COG is in cache, yes -> set cog data in terrain request, no -> add to requests queue if not added yet.
+4) Download COG data and process using a COG processor
+5) Add data to cache
+6) Set COG data for all terrain requests that need this data
+7) Check if a terrain requests has all the COG data it needs
+8) Run the terrain processor
+9) Return Quantized Mesh
+
+![CTOD: TerrainFactory](./img/ctod_terrain_factory.jpg)
+
+### CogProcessor
+
+ToDo
+
+### TerrainProcessor
+
+ToDo
+
+### Used libraries
+
+- [rio-tiler](https://github.com/cogeotiff/rio-tiler): Rasterio plugin to read raster datasets. (BSD-3-Clause)
+- [pydelatin](https://github.com/kylebarron/pydelatin): Terrain mesh generation. (MIT)
+- [quantized-mesh-encoder](https://github.com/kylebarron/quantized-mesh-encoder): A fast Python Quantized Mesh encoder. (MIT)
+- [morecantile](https://github.com/developmentseed/morecantile): Construct and use OGC TileMatrixSets. (MIT)
+## Internals
