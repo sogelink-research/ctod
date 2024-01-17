@@ -69,7 +69,9 @@ class BaseHandler(web.RequestHandler):
             bool: True if the cache should be skipped, False otherwise
         """
         
-        return self.get_argument("skipCache", default=False)
+        skip_cache = self.get_argument("skipCache", default="false")
+        return skip_cache.lower() == "true"        
+        
     
     def get_extensions(self) -> str:
         """Get the accept header from the request

@@ -5,6 +5,7 @@ var maxZoomValue = 21;
 var cogValue =
   "./ctod/files/test_cog.tif";
 var resamplingValue = "bilinear";
+var skipCacheValue = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -20,8 +21,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function setupTweakpane() {
+  minZoomValue = getIntParameterValue("minZoom", minZoomValue);
+  maxZoomValue = getIntParameterValue("maxZoom", maxZoomValue);
+  cogValue = getStringParameterValue("cog", cogValue);
+  resamplingValue = getStringParameterValue("resamplingMethod", resamplingValue);  
+  skipCacheValue = getBoolParameterValue("skipCache", skipCacheValue);
+
   pane = new module.Pane({
     title: "CTOD",
+  });
+
+  const CacheOptions = {
+    skipCache: skipCacheValue
+  };  
+
+  skipCache = pane.addBinding(
+    CacheOptions,
+    "skipCache"
+  );
+
+  skipCache.on("change", (ev) => {
+    skipCacheValue = ev.value;
+    updateTerrainProvider();
   });
 
   terrainFolder = pane.addFolder({
@@ -37,10 +58,7 @@ function setupTweakpane() {
     expanded: false,
   });
 
-  minZoomValue = getIntParameterValue("minZoom", minZoomValue);
-  maxZoomValue = getIntParameterValue("maxZoom", maxZoomValue);
-  cogValue = getStringParameterValue("cog", cogValue);
-  resamplingValue = getStringParameterValue("resamplingMethod", resamplingValue);  
+  
 
   createTerrainPane();
   createLayerPane();
@@ -188,7 +206,7 @@ function createLayerPane() {
 }
 
 function updateTerrainProvider() {
-  setTerrainProvider(minZoomValue, maxZoomValue, cogValue, resamplingValue);
+  setTerrainProvider(minZoomValue, maxZoomValue, cogValue, resamplingValue, skipCacheValue);
 }
 
 function getStringParameterValue(param, defaultValue) {
@@ -197,4 +215,8 @@ function getStringParameterValue(param, defaultValue) {
 
 function getIntParameterValue(param, defaultValue) {
   return urlParams.get(param) ? parseInt(urlParams.get(param)) : defaultValue;
+}
+
+function getBoolParameterValue(param, defaultValue) {
+  return urlParams.get(param) ? urlParams.get(param).toLowerCase() === "true" ? true : false : defaultValue;
 }
