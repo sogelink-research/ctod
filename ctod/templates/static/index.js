@@ -27,7 +27,7 @@ function loadCesium() {
 
   initializeLayers();
   configureViewer();
-  setHillshading();
+  setShading();
 }
 
 function initializeLayers() {

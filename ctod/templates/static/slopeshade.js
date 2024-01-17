@@ -4,22 +4,20 @@ const HillshadingOptions = {
 
 const SlopeRampParams = {
   slopeRamp1: "0.0",
-  slopeRamp2: "0.29",
+  slopeRamp2: "0.3",
   slopeRamp3: "0.5",
   slopeRamp4: "0.7",
-  slopeRamp5: "0.87",
-  slopeRamp6: "0.91",
-  slopeRamp7: "1.0",
+  slopeRamp5: "0.9",
+  slopeRamp6: "1.0",
 };
 
 const SlopeRampColorParams = {
-  slopeColor1: "rgba(0, 0, 0, 0.0)",
-  slopeColor2: "rgba(0, 0, 0, 0.2)",
-  slopeColor3: "rgba(0, 0, 0, 0.3)",
-  slopeColor4: "rgba(0, 0, 0, 0.4)",
-  slopeColor5: "rgba(0, 0, 0, 0.5)",
-  slopeColor6: "rgba(0, 0, 0, 0.6)",
-  slopeColor7: "rgba(0, 0, 0, 0.7)",
+  Color1: "rgba(0, 0, 0, 0.0)",
+  Color2: "rgba(0, 0, 0, 0.1)",
+  Color3: "rgba(0, 0, 0, 0.2)",
+  Color4: "rgba(0, 0, 0, 0.3)",
+  Color5: "rgba(0, 0, 0, 0.4)",
+  Color6: "rgba(0, 0, 0, 0.5)",
 };
 
 function getHillShadingSlopeRamp() {
@@ -32,12 +30,12 @@ function getHillShadingSlopeRampColors() {
   );
 }
 
-function disableHillshading() {
+function disableShading() {
   viewer.scene.globe.material = undefined;
   updateViewer();
 }
 
-function setHillshading() {
+function setShading() {
   if (HillshadingOptions.enabled === false) {
     return;
   }

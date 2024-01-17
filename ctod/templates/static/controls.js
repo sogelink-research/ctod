@@ -33,7 +33,8 @@ function setupTweakpane() {
   });
 
   materialFolder = pane.addFolder({
-    title: "Hillshading",
+    title: "Shading",
+    expanded: false,
   });
 
   minZoomValue = getIntParameterValue("minZoom", minZoomValue);
@@ -47,17 +48,15 @@ function setupTweakpane() {
 }
 
 function createMaterialPane() {
-
-
   hillshadingEnabled = materialFolder.addBinding(
     HillshadingOptions,
     "enabled"
   );
   hillshadingEnabled.on("change", (ev) => {
     if (!ev.value) {
-      disableHillshading();
+      disableShading();
     } else {
-      setHillshading();
+      setShading();
     }
   });
 
@@ -67,7 +66,7 @@ function createMaterialPane() {
       Object.keys(SlopeRampParams)[i]
     );
     binding.on("change", (ev) => {
-      setHillshading();
+      setShading();
     });
   }
 
@@ -77,7 +76,7 @@ function createMaterialPane() {
       Object.keys(SlopeRampColorParams)[i]
     );
     binding.on("change", (ev) => {
-      setHillshading();
+      setShading();
     });
   }
 }
