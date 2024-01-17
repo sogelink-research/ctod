@@ -10,7 +10,7 @@ CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynami
 docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache ghcr.io/sogelink-research/ctod:latest
 ```
 
-[Open demo viewer](http://localhost:5000)
+[Open the local running demo viewer](http://localhost:5000)
 
 ## Features
 
@@ -30,11 +30,11 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache 
 
 - Pass processor options
 - Add skipCache to viewer
+- Test if we can improve performance by reusing readers for the COG (Reader Pool)
 - Pydelatin and/or Martini support
 - Refactoring
 - Logging
 - Cleanup viewer code
-- Smaller docker image if possible
 
 ### V1.1
 
@@ -45,10 +45,10 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHING_PATH=/cache 
 
 ## Used libraries
 
-- rio-tiler: Read data from COG files. (BSD-3-Clause)
-- pydelatin: Terrain mesh generation from COG data. (MIT)
-- quantized-mesh-encoder: Encode a mesh to a Quantized Mesh. (MIT)
-- morecantile: Tile Matrix Sets. (MIT)
+- [rio-tiler](https://github.com/cogeotiff/rio-tiler): Rasterio plugin to read raster datasets. (BSD-3-Clause)
+- [pydelatin](https://github.com/kylebarron/pydelatin): Terrain mesh generation. (MIT)
+- [quantized-mesh-encoder](https://github.com/kylebarron/quantized-mesh-encoder): A fast Python Quantized Mesh encoder. (MIT)
+- [morecantile](https://github.com/developmentseed/morecantile): Construct and use OGC TileMatrixSets. (MIT)
 
 ## Run CTOD with Docker
 
@@ -101,7 +101,7 @@ Nodata values in the COG are automatically set to 0 else it is likely that the m
 
 ## Stitching tiles
 
-With all the available methods to generate a mesh for a tiff we are facing the problem that we do not have shared vertices at tile edges as described by the [quantized mesh standard](https://github.com/CesiumGS/quantized-mesh). This results in seems between tiles because of possible height difference but also because the normals are only calculated for a tile and don't take adjecent tiles into account. In CTOD we solve this by requesting neighbouring tiles and make sure we have shared vertices and if needed average the height and normals. The terrain factory makes sure we download all needed data without duplicate request, the COG Processor processes the COG data making a mesh and normals, the Terrain Processor makes sure we have have shared edge vertices and the heights and normals are correct on the edges.
+With all the available methods to generate a mesh for a tiff we are facing the problem that we do not have shared vertices at tile edges as described by the [quantized mesh standard](https://github.com/CesiumGS/quantized-mesh). This results in seems between tiles because of possible height difference but also because the normals are only calculated for a tile and don't take adjecent tiles into account. The seems can be spotted in the left part of the image below. In CTOD we solve this by requesting neighbouring tiles and make sure we have shared vertices and if needed average the height and normals. The terrain factory makes sure we download all needed data without duplicate request, the COG Processor processes the COG data making a mesh and normals, the Terrain Processor makes sure we have have shared edge vertices and the heights and normals are correct on the edges.
 
 ![CTOD: Non stitched tile](./img/normals.jpg)
 
