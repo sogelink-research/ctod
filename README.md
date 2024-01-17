@@ -42,24 +42,21 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -CTOD_LOGGING_L
 - Extension support: Metadata, Watermask
 - Serverless functions
 
-## Used libraries
-
-- [rio-tiler](https://github.com/cogeotiff/rio-tiler): Rasterio plugin to read raster datasets. (BSD-3-Clause)
-- [pydelatin](https://github.com/kylebarron/pydelatin): Terrain mesh generation. (MIT)
-- [quantized-mesh-encoder](https://github.com/kylebarron/quantized-mesh-encoder): A fast Python Quantized Mesh encoder. (MIT)
-- [morecantile](https://github.com/developmentseed/morecantile): Construct and use OGC TileMatrixSets. (MIT)
-
 ## Settings
 
 The following options can be set by supplying args to app.py or setting the environment variables.
 
 |argument|environment variable|description|default|
 |-|-|-|-|
-|--tile-cache-path|CTOD_TILE_CACHE_PATH|Path to cache directory, if not set caching is disabled (Default)|None|
-|--logging-level|CTOD_LOGGING_LEVEL|The logging level, options: ['debug', 'info', 'warning', 'error', 'critical']|info|
+|--tile-cache-path|CTOD_TILE_CACHE_PATH|Cache dir, not set = cache disabled|None|
+|--logging-level|CTOD_LOGGING_LEVEL|debug, info, warning, error, critical|info|
 |--port|CTOD_PORT|Port to run the service on|5000|
 
-## Run CTOD with Docker
+## Run CTOD
+
+Run CTOD using docker or from source, see `Settings` for configuration options.
+
+### Using Docker
 
 Example running CTOD using the docker image with a mounted volume and caching enabled.
 
@@ -67,7 +64,7 @@ Example running CTOD using the docker image with a mounted volume and caching en
 docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHE_PATH=/cache ghcr.io/sogelink-research/ctod:latest
 ```
 
-## Run CTOD from source
+### From source
 
 Create a virtual environment, install and run CTOD.
 
@@ -117,6 +114,13 @@ With all the available methods to generate a mesh for a tiff we are facing the p
 ![CTOD: Non stitched tile](./img/normals.jpg)
 
 *Stitching: Averaged normals between adjecent tiles*
+
+## Used libraries
+
+- [rio-tiler](https://github.com/cogeotiff/rio-tiler): Rasterio plugin to read raster datasets. (BSD-3-Clause)
+- [pydelatin](https://github.com/kylebarron/pydelatin): Terrain mesh generation. (MIT)
+- [quantized-mesh-encoder](https://github.com/kylebarron/quantized-mesh-encoder): A fast Python Quantized Mesh encoder. (MIT)
+- [morecantile](https://github.com/developmentseed/morecantile): Construct and use OGC TileMatrixSets. (MIT)
 
 ### TerrainFactory
 
