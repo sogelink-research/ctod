@@ -4,10 +4,12 @@ from asyncio import ensure_future
 from ctod.core import utils
 from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.cog.processor.cog_processor_quantized_mesh_grid import CogProcessorQuantizedMeshGrid
+from ctod.core.cog.processor.cog_processor_quantized_mesh_delatin import CogProcessorQuantizedMeshDelatin
 from ctod.core.terrain.generator.terrain_generator import TerrainGenerator
 from ctod.core.terrain.terrain_request import TerrainRequest
 from ctod.core.terrain.empty_tile import generate_empty_tile
 from ctod.core.terrain.generator.terrain_generator_quantized_mesh_grid import TerrainGeneratorQuantizedMeshGrid
+from ctod.core.terrain.generator.terrain_generator_quantized_mesh_delatin import TerrainGeneratorQuantizedMeshDelatin
 from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
 from ctod.handlers.base import BaseHandler
 from morecantile import TileMatrixSet
@@ -27,6 +29,17 @@ class TerrainHandler(BaseHandler):
         self.terrain_factory = kwargs.pop('terrain_factory')
         self.tile_cache_path = kwargs.pop('tile_cache_path')
         self.cog_reader_pool = kwargs.pop('cog_reader_pool')
+        self.cog_processors = {
+            "default": CogProcessorQuantizedMeshGrid,
+            "grid": CogProcessorQuantizedMeshGrid,
+            "delatin": CogProcessorQuantizedMeshDelatin,
+        }
+        self.terrain_generators = {
+            "default": TerrainGeneratorQuantizedMeshGrid,
+            "grid": TerrainGeneratorQuantizedMeshGrid,
+            "delatin": TerrainGeneratorQuantizedMeshDelatin            
+        }
+        
         super(TerrainHandler, self).__init__(application, request, **kwargs)
 
     async def get(self, z: int, x: int, y: int):
@@ -65,7 +78,7 @@ class TerrainHandler(BaseHandler):
                 return
             
               
-            cog_processor = self.get_cog_processor(meshing_method)
+            cog_processor = self._get_cog_processor(meshing_method)
             terrain_generator = self._get_terrain_generator(meshing_method)
             self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, cog_processor, terrain_generator, self.cog_reader_pool, extensions["octvertexnormals"])
             quantized = await self.terrain_factory.handle_request(self.terrain_request)
@@ -101,12 +114,10 @@ class TerrainHandler(BaseHandler):
             TerrainGenerator: Terrain generator based on given meshing method
         """
         
-        if meshing_method == "grid":
-            return TerrainGeneratorQuantizedMeshGrid()
-        
-        return TerrainGeneratorQuantizedMeshGrid()
+        terrain_generator = self.terrain_generators.get(meshing_method, self.terrain_generators["default"])
+        return terrain_generator()
     
-    def get_cog_processor(self, meshing_method: str) -> CogProcessor:
+    def _get_cog_processor(self, meshing_method: str) -> CogProcessor:
         """Get the cog processor based on the meshing method
 
         Args:
@@ -116,10 +127,8 @@ class TerrainHandler(BaseHandler):
             CogProcessor: Cog processor based on given meshing method
         """
         
-        if meshing_method == "grid":
-            return CogProcessorQuantizedMeshGrid()
-        
-        return CogProcessorQuantizedMeshGrid()
+        cog_processor = self.cog_processors.get(meshing_method, self.cog_processors["default"])
+        return cog_processor()
         
     def _return_empty_terrain(self, tms: TileMatrixSet, cog: str, meshing_method: str, resampling_method, z: int, x: int, y: int):
         """Return an empty terrain tile

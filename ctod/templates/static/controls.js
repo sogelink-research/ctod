@@ -2,6 +2,7 @@ var module, pane, terrainFolder, layerFolder, materialFolder, urlParams;
 
 var minZoomValue = 1;
 var maxZoomValue = 21;
+var meshingMethodValue = "grid";
 var cogValue =
   "./ctod/files/test_cog.tif";
 var resamplingValue = "bilinear";
@@ -26,6 +27,7 @@ function setupTweakpane() {
   cogValue = getStringParameterValue("cog", cogValue);
   resamplingValue = getStringParameterValue("resamplingMethod", resamplingValue);  
   skipCacheValue = getBoolParameterValue("skipCache", skipCacheValue);
+  meshingMethodValue = getStringParameterValue("meshingMethod", meshingMethodValue);
 
   pane = new module.Pane({
     title: "CTOD",
@@ -57,8 +59,6 @@ function setupTweakpane() {
     title: "Shading",
     expanded: false,
   });
-
-  
 
   createTerrainPane();
   createLayerPane();
@@ -102,7 +102,8 @@ function createMaterialPane() {
 function createTerrainPane() {
   const PARAMS = {
     cog: cogValue,
-    resampling: resamplingValue
+    resampling: resamplingValue,
+    meshing: meshingMethodValue
   };
 
   cog = terrainFolder.addBinding(PARAMS, "cog", {});
@@ -167,6 +168,18 @@ function createTerrainPane() {
     resamplingValue = ev.value;
     updateTerrainProvider();
   });
+
+  const meshingMethod = terrainFolder.addBinding(PARAMS, "meshing", {
+    options: {
+      grid: "grid",
+      delatin: "delatin"
+    },
+  });
+
+  meshingMethod.on("change", (ev) => {
+    meshingMethodValue = ev.value;
+    updateTerrainProvider();
+  });
 }
 
 function createLayerPane() {
@@ -206,7 +219,7 @@ function createLayerPane() {
 }
 
 function updateTerrainProvider() {
-  setTerrainProvider(minZoomValue, maxZoomValue, cogValue, resamplingValue, skipCacheValue);
+  setTerrainProvider(minZoomValue, maxZoomValue, cogValue, resamplingValue, skipCacheValue, meshingMethodValue);
 }
 
 function getStringParameterValue(param, defaultValue) {

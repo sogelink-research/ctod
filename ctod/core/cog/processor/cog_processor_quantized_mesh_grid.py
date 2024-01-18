@@ -2,13 +2,12 @@ import numpy as np
 
 from ctod.core.cog.cog_request import CogRequest
 from ctod.core.cog.processor.cog_processor import CogProcessor
-from quantized_mesh_encoder.ecef import to_ecef
-from quantized_mesh_encoder.constants import WGS84
-from quantized_mesh_encoder.ellipsoid import Ellipsoid
-from ctod.core.utils import rescale_positions
 from ctod.core.cog.processor.grid import generate_grid
 from ctod.core.normals import calculate_normals
-
+from ctod.core.utils import rescale_positions
+from quantized_mesh_encoder.constants import WGS84
+from quantized_mesh_encoder.ecef import to_ecef
+from quantized_mesh_encoder.ellipsoid import Ellipsoid
 
 class CogProcessorQuantizedMeshGrid(CogProcessor):
     """A CogProcessor for a grid based mesh.
