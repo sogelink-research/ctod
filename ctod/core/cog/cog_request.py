@@ -5,6 +5,7 @@ from ctod.core import utils
 from ctod.core.cog.cog import download_tile
 from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.utils import generate_cog_cache_key
+from ctod.core.settings import get_mesh_max_error
 from rio_tiler.errors import TileOutsideBounds
 
 class CogRequest:
@@ -23,6 +24,10 @@ class CogRequest:
         self.data = None
         self.processed_data = None
         self.timestamp = time.time()
+        # todo: mesh_processor should be defined at query not apriori
+        self.flip_y = False # todo: flip if 'martini' in str(self.cog_processor.__class__).lower()?
+        self.max_error: float = get_mesh_max_error(self.z)
+        self.buffer = 0.0 # todo: 0.5 if 'martini' in str(self.cog_processor.__class__).lower() else 0.0?
         self._future = None
     
     def set_data(self, data, processed_data, is_out_of_bounds):
@@ -40,7 +45,7 @@ class CogRequest:
 
     def _download(self):
         try:
-            dowloaded_data = download_tile(self.tms, self.x, self.y, self.z, self.cog, self.resampling_method)
+            dowloaded_data = download_tile(self.tms, self.x, self.y, self.z, self.cog, self.resampling_method, self.buffer)
             if dowloaded_data is not None:
                 self.data = dowloaded_data
                 self.processed_data = self.cog_processor.process(self)

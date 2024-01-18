@@ -52,7 +52,8 @@ function initializeLayers() {
     urlParams.get("cog") ||
     "./ctod/files/test_cog.tif";
   const skipCache = urlParams.get("skipCache") || false;
-  setTerrainProvider(minZoom, maxZoom, cog, "bilinear", skipCache);
+  const meshingMethod = urlParams.get("meshingMethod") || "grid";
+  setTerrainProvider(minZoom, maxZoom, cog, "bilinear", skipCache, meshingMethod);
 
   streetsLayer.show = true;
   satelliteLayer.show = false;
@@ -110,8 +111,8 @@ function configureViewer() {
   });
 }
 
-function setTerrainProvider(minZoom, maxZoom, cog, resamplingMethod, skipCache) {
-  const terrainProviderUrl = `${window.location.origin}/tiles?minZoom=${minZoom}&maxZoom=${maxZoom}&cog=${cog}&resamplingMethod=${resamplingMethod}&skipCache=${skipCache}`;
+function setTerrainProvider(minZoom, maxZoom, cog, resamplingMethod, skipCache, meshingMethod) {
+  const terrainProviderUrl = `${window.location.origin}/tiles?minZoom=${minZoom}&maxZoom=${maxZoom}&cog=${cog}&resamplingMethod=${resamplingMethod}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
 
   terrainProvider = new Cesium.CesiumTerrainProvider({
     url: terrainProviderUrl,

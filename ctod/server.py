@@ -2,7 +2,6 @@ import asyncio
 import logging
 import quantized_mesh_encoder.occlusion
 
-from ctod.core.cog.processor.cog_processor_quantized_mesh_grid import CogProcessorQuantizedMeshGrid
 from ctod.core.factory.terrain_factory import TerrainFactory
 from ctod.handlers.index import IndexHandler
 from ctod.handlers.layer import LayerJsonHandler
@@ -22,12 +21,11 @@ def log_request(handler):
             handler._request_summary(),
             1000.0 * handler.request.request_time())
     
-def make_server(tile_cache_path: str = None):
+def make_server(tile_cache_path: str = None, mesh_processor: str = 'grid'):
     """Create a Tornado web server."""
     
     patch_occlusion()    
     terrain_factory = TerrainFactory()
-    cog_processor_mesh_grid = CogProcessorQuantizedMeshGrid()
 
     # Start the periodic cache check in the background
     asyncio.ensure_future(terrain_factory.start_periodic_check())
@@ -41,7 +39,6 @@ def make_server(tile_cache_path: str = None):
                 TerrainHandler,
                 dict(
                     terrain_factory=terrain_factory,
-                    cog_processor=cog_processor_mesh_grid,
                     tile_cache_path=tile_cache_path
                 ),
             ),
