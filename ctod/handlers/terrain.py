@@ -5,6 +5,9 @@ from ctod.core import utils
 from ctod.core.terrain.terrain_request import TerrainRequest
 from ctod.core.terrain.empty_tile import generate_empty_tile
 from ctod.core.terrain.generator.terrain_generator_quantized_mesh_grid import TerrainGeneratorQuantizedMeshGrid
+from ctod.core.terrain.generator.terrain_generator_quantized_mesh_delatin import TerrainGeneratorQuantizedMeshDelatin
+from ctod.core.terrain.generator.terrain_generator_quantized_mesh_martini import TerrainGeneratorQuantizedMeshMartini
+from ctod.core.cog.processor.processor_util import get_cog_processor_for_method
 from ctod.handlers.base import BaseHandler
 from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
 from morecantile import TileMatrixSet
@@ -22,7 +25,6 @@ class TerrainHandler(BaseHandler):
     
     def __init__(self, application, request, **kwargs):
         self.terrain_factory = kwargs.pop('terrain_factory')
-        self.cog_processor = kwargs.pop('cog_processor')
         self.tile_cache_path = kwargs.pop('tile_cache_path')
         super(TerrainHandler, self).__init__(application, request, **kwargs)
 
@@ -62,8 +64,9 @@ class TerrainHandler(BaseHandler):
                 self._return_empty_terrain(tms, cog, meshing_method, resampling_method, z, x, y)
                 return
             
-            terrain_generator = self._get_terrain_generator(meshing_method)            
-            self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, self.cog_processor, terrain_generator, extensions["octvertexnormals"])
+            terrain_generator = self._get_terrain_generator(meshing_method)
+            cog_processor = get_cog_processor_for_method(meshing_method)
+            self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, cog_processor=cog_processor, terrain_generator=terrain_generator, generate_normals=extensions["octvertexnormals"])
             quantized = await self.terrain_factory.handle_request(self.terrain_request)
             
             self._try_save_tile_to_cache(cog, meshing_method, resampling_method, z, x, y, quantized)                
@@ -90,8 +93,12 @@ class TerrainHandler(BaseHandler):
     def _get_terrain_generator(self, meshing_method: str):
         if meshing_method == "grid":
             return TerrainGeneratorQuantizedMeshGrid()
-        
-        return TerrainGeneratorQuantizedMeshGrid()
+        elif meshing_method == "martini":
+            return TerrainGeneratorQuantizedMeshMartini()
+        elif meshing_method == "delatin":
+            return TerrainGeneratorQuantizedMeshDelatin()
+        else:
+            return TerrainGeneratorQuantizedMeshGrid()
     
     def _return_empty_terrain(self, tms: TileMatrixSet, cog: str, meshing_method: str, resampling_method, z: int, x: int, y: int):
         """Return an empty terrain tile

@@ -25,10 +25,10 @@ class CogProcessorQuantizedMeshGrid(CogProcessor):
         vertices_new = np.array(vertices_3d, dtype=np.float64)
         triangles_new = np.array(triangles, dtype=np.uint16)
         
-        rescaled = rescale_positions(vertices_new, cog_request.tile_bounds, flip_y=False)
+        rescaled = rescale_positions(vertices_new, cog_request.tile_bounds, flip_y=cog_request.flip_y)
         cartesian = to_ecef(rescaled, ellipsoid=self.ellipsoid)
         normals = calculate_normals(cartesian, triangles_new) if cog_request.generate_normals else None
-        
+        # vetices seem to be in grid coordinate space not lat/lon
         return (vertices_new, triangles_new, normals)
                 
     def get_grid(self, num_rows, num_cols):
