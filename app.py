@@ -1,43 +1,44 @@
 import argparse
 import logging
 import os
+import signal
 import tornado.ioloop
 
 from ctod.server import make_server
 
 
 def main():
-    # Parse command line arguments and environment variables
     args = _parse_args()
     port = _get_value(args.port, int(os.environ.get('CTOD_PORT', 5000)), 5000)
     tile_cache_path = _get_value(args.tile_cache_path, os.environ.get('CTOD_TILE_CACHE_PATH', None), None)
     logging_level = _get_value(args.logging_level, os.environ.get('CTOD_LOGGING_LEVEL', 'info'), 'info')
 
-    # Setup logging
     _setup_logging(log_level=getattr(logging, logging_level.upper()))
 
-    # Set up asyncio event loop integration with Tornado
-    #AsyncIOMainLoop().install()
-
-    # Create the Tornado application using the make_server function from server.py
     app = make_server(tile_cache_path)
     app.listen(port)
     
     _log_ctod_start(port, tile_cache_path)
-    
     tornado.ioloop.IOLoop.current().start()
 
+def _shutdown(signum, frame):
+    """Shut down the application."""
+    
+    tornado.ioloop.IOLoop.instance().stop()
+    logging.info("Shutting down CTOD")
+    
 def _parse_args():
     parser = argparse.ArgumentParser(description="CTOD Application")
     parser.add_argument('--tile-cache-path', help="Path to the tile cache")
     parser.add_argument('--logging-level', choices=['debug', 'info', 'warning', 'error', 'critical'],
                         default='info', help="Logging level")
     parser.add_argument('--port', type=int, default=5000, help="Port to run the application on")
+    
     return parser.parse_args()
 
 def _get_value(command_line, environment, default):
     return command_line if command_line is not None else environment if environment is not None else default
-
+            
 def _log_ctod_start(port: int, tile_cache_path: str):
     """Log message when starting the service
 
@@ -65,4 +66,5 @@ def _setup_logging(log_level=logging.INFO):
     )
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, _shutdown)
     main()
