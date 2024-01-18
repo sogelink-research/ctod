@@ -84,7 +84,7 @@ python app.py --tile-cache-path ./ctod_cache
 
 ### Endpoint: `/`
 
-Returns a sample Cesium viewer
+Returns a sample Cesium viewer, all values can be changed using the control panel, default settings can be overwritten on startup of the viewer with the below parameters, see the example aswell.
 
 #### Request
 
