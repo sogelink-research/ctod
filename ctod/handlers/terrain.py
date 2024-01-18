@@ -2,11 +2,14 @@ import logging
 
 from asyncio import ensure_future
 from ctod.core import utils
+from ctod.core.cog.processor.cog_processor import CogProcessor
+from ctod.core.cog.processor.cog_processor_quantized_mesh_grid import CogProcessorQuantizedMeshGrid
+from ctod.core.terrain.generator.terrain_generator import TerrainGenerator
 from ctod.core.terrain.terrain_request import TerrainRequest
 from ctod.core.terrain.empty_tile import generate_empty_tile
 from ctod.core.terrain.generator.terrain_generator_quantized_mesh_grid import TerrainGeneratorQuantizedMeshGrid
-from ctod.handlers.base import BaseHandler
 from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
+from ctod.handlers.base import BaseHandler
 from morecantile import TileMatrixSet
 from rio_tiler.errors import TileOutsideBounds
 from tornado.web import HTTPError
@@ -22,7 +25,6 @@ class TerrainHandler(BaseHandler):
     
     def __init__(self, application, request, **kwargs):
         self.terrain_factory = kwargs.pop('terrain_factory')
-        self.cog_processor = kwargs.pop('cog_processor')
         self.tile_cache_path = kwargs.pop('tile_cache_path')
         self.cog_reader_pool = kwargs.pop('cog_reader_pool')
         super(TerrainHandler, self).__init__(application, request, **kwargs)
@@ -44,7 +46,6 @@ class TerrainHandler(BaseHandler):
             resampling_method = self.get_resampling_method()
             skip_cache = self.get_skip_cache()
             tms = utils.get_tms()
-                        
             x, y, z = utils.tile_index_from_cesium(tms, int(x), int(y), int(z))
 
             # Try handling the request from the cache
@@ -63,8 +64,10 @@ class TerrainHandler(BaseHandler):
                 self._return_empty_terrain(tms, cog, meshing_method, resampling_method, z, x, y)
                 return
             
-            terrain_generator = self._get_terrain_generator(meshing_method)            
-            self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, self.cog_processor, terrain_generator, self.cog_reader_pool, extensions["octvertexnormals"])
+              
+            cog_processor = self.get_cog_processor(meshing_method)
+            terrain_generator = self._get_terrain_generator(meshing_method)
+            self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, cog_processor, terrain_generator, self.cog_reader_pool, extensions["octvertexnormals"])
             quantized = await self.terrain_factory.handle_request(self.terrain_request)
             
             self._try_save_tile_to_cache(cog, meshing_method, resampling_method, z, x, y, quantized)                
@@ -76,7 +79,7 @@ class TerrainHandler(BaseHandler):
                 else:
                     self.set_status(e.status_code)
                     self.finish(f"Error: {e.reason}")
-                
+        
     async def handle_cancelled_request(self):
         """Handle a cancelled request"""
         
@@ -88,12 +91,36 @@ class TerrainHandler(BaseHandler):
         
         ensure_future(self.handle_cancelled_request())
 
-    def _get_terrain_generator(self, meshing_method: str):
+    def _get_terrain_generator(self, meshing_method: str) -> TerrainGenerator:
+        """Get the terrain generator based on the meshing method
+
+        Args:
+            meshing_method (str): Meshing method to use
+
+        Returns:
+            TerrainGenerator: Terrain generator based on given meshing method
+        """
+        
         if meshing_method == "grid":
             return TerrainGeneratorQuantizedMeshGrid()
         
         return TerrainGeneratorQuantizedMeshGrid()
     
+    def get_cog_processor(self, meshing_method: str) -> CogProcessor:
+        """Get the cog processor based on the meshing method
+
+        Args:
+            meshing_method (str): Meshing method to use
+
+        Returns:
+            CogProcessor: Cog processor based on given meshing method
+        """
+        
+        if meshing_method == "grid":
+            return CogProcessorQuantizedMeshGrid()
+        
+        return CogProcessorQuantizedMeshGrid()
+        
     def _return_empty_terrain(self, tms: TileMatrixSet, cog: str, meshing_method: str, resampling_method, z: int, x: int, y: int):
         """Return an empty terrain tile
         generated based on the tile index including geodetic surface normals
