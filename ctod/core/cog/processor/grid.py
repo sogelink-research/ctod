@@ -1,7 +1,19 @@
 import numpy as np
 
-def generate_grid(width, height, num_rows, num_cols):
-        # Create the grid using NumPy
+def generate_grid(width: int, height: int, num_rows: int, num_cols: int) -> tuple:
+    """Generate a grid of vertices and triangles
+
+    Args:
+        width (int): Width of the grid
+        height (int): Height of the grid
+        num_rows (int): Number of rows to generate
+        num_cols (int): Number of columns to generate
+
+    Returns:
+        tuple: vertices, triangles
+    """
+    
+    # Create the grid using NumPy
     grid_x, grid_y = np.meshgrid(np.linspace(0, width, num_cols + 1), np.linspace(0, height, num_rows + 1))
 
     # Stack the x and y coordinates into a single array

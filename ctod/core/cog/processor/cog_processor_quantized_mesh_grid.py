@@ -9,13 +9,30 @@ from ctod.core.utils import rescale_positions
 from ctod.core.cog.processor.grid import generate_grid
 from ctod.core.normals import calculate_normals
 
+
 class CogProcessorQuantizedMeshGrid(CogProcessor):
+    """A CogProcessor for a grid based mesh.
+    
+    - Create grid with 2d vertices and triangles
+    - Sample height data from COG data and make vertices 3d
+    - Calculate normals
+    
+    ToDo: Grids can be stored in a cache, however generating a grid takes 0.7ms on average
+    """
 
     def __init__(self):
-        self.grid_cache = {}
         self.ellipsoid: Ellipsoid = WGS84
         
-    def process(self, cog_request: CogRequest):
+    def process(self, cog_request: CogRequest) -> tuple:
+        """Process a CogRequest and return the vertices, triangles and normals.
+
+        Args:
+            cog_request (CogRequest): The CogRequest to process.
+
+        Returns:
+            tuple: Generated vertices, triangles and normals
+        """
+        
         vertices2d, triangles = self.get_grid(25, 25)
         height_data_indices = np.floor(vertices2d).astype(int)
         
@@ -31,7 +48,17 @@ class CogProcessorQuantizedMeshGrid(CogProcessor):
         
         return (vertices_new, triangles_new, normals)
                 
-    def get_grid(self, num_rows, num_cols):
+    def get_grid(self, num_rows: int, num_cols: int) -> tuple:
+        """Generate a grid of vertices and triangles
+
+        Args:
+            num_rows (int): Amount of rows to generate
+            num_cols (int): Amount of columns to generate
+
+        Returns:
+            tuple: vertices, triangles
+        """
+        
         width, height = 255, 255
         
         if num_rows > height:
@@ -40,12 +67,6 @@ class CogProcessorQuantizedMeshGrid(CogProcessor):
         if num_cols > width:
             num_cols = width
 
-        if (num_rows, num_cols) in self.grid_cache:
-            return self.grid_cache[(num_rows, num_cols)]
-        
         generated_grid = generate_grid(width, height, num_rows, num_cols)
                 
-        # Save the generated grid to the cache
-        self.grid_cache[(num_rows, num_cols)] = generated_grid
-
         return generated_grid
