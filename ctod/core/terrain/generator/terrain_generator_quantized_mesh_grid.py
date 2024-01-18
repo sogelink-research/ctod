@@ -2,21 +2,30 @@ import logging
 import numpy as np
 
 from ctod.core.cog.cog_request import CogRequest
-
+from ctod.core.direction import Direction
 from ctod.core.terrain.generator.terrain_generator import TerrainGenerator
+from ctod.core.terrain.empty_tile import generate_empty_tile
 from ctod.core.terrain.terrain_request import TerrainRequest
 from ctod.core.terrain.quantize import quantize
-from ctod.core.direction import Direction
 from ctod.core.utils import rescale_positions
-from ctod.core.terrain.empty_tile import generate_empty_tile
 
 
 class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
-
+    """A TerrainGenerator for a grid based mesh."""
+    
     def __init__(self):
         pass
 
-    def generate(self, terrain_request: TerrainRequest):
+    def generate(self, terrain_request: TerrainRequest) -> bytes:
+        """Generate a quantized mesh grid based on the terrain request.
+
+        Args:
+            terrain_request (TerrainRequest): The terrain request.
+
+        Returns:
+            quantized_mesh (bytes): The generated quantized mesh
+        """
+        
         main_cog = terrain_request.get_main_file()
         
         # should not happen, in case it does return empty tile
@@ -64,7 +73,13 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         
         return quantized
     
-    def _get_neighbour_transformed_edge_vertices(self, n, ne, e, se, s, sw, w, nw):
+    def _get_neighbour_transformed_edge_vertices(self, n: CogRequest, ne: CogRequest, e: CogRequest, se: CogRequest, s: CogRequest, sw: CogRequest, w: CogRequest, nw: CogRequest) -> np.ndarray:
+        """Get the neighbouring tile transformed edge vertices
+
+        Returns:
+            vertices (ndarray): edge vertices of neighbour transformed to the correct edges of the local tile
+        """
+        
         n_v = self._get_transformed_edge_vertices(n, Direction.SOUTH)
         ne_v = self._get_transformed_edge_vertices(ne, Direction.SOUTHWEST)
         e_v = self._get_transformed_edge_vertices(e, Direction.WEST)
@@ -83,7 +98,13 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         else:
             return None
 
-    def _get_neighbour_normals(self, n, ne, e, se, s, sw, w, nw):
+    def _get_neighbour_normals(self, n: CogRequest, ne: CogRequest, e: CogRequest, se: CogRequest, s: CogRequest, sw: CogRequest, w: CogRequest, nw: CogRequest) -> np.ndarray:
+        """Get the neighbouring tile normals
+
+        Returns:
+            normals (ndarray): normals of neighbour vertices aligned to the neighbour vertice array
+        """
+        
         n_n = self._get_edge_normals(n, Direction.SOUTH)
         ne_n = self._get_edge_normals(ne, Direction.SOUTHWEST)
         e_n = self._get_edge_normals(e, Direction.WEST)
@@ -94,9 +115,20 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         nw_n = self._get_edge_normals(nw, Direction.SOUTHEAST)
         arrays_n = [n_n, ne_n, e_n, se_n, s_n, sw_n, w_n, nw_n]
         arrays_n = list(filter(lambda x: x is not None, arrays_n))
+        
         return np.concatenate(arrays_n, axis=0)
         
-    def _get_transformed_edge_vertices(self, cog_request: CogRequest, direction: Direction):
+    def _get_transformed_edge_vertices(self, cog_request: CogRequest, direction: Direction) -> np.ndarray:
+        """Get the edge vertices of the neighbour tile transformed to the correct edges of the local tile
+
+        Args:
+            cog_request (CogRequest): The CogRequest of the neighbour tile
+            direction (Direction): The edge direction of the neighbour tile
+
+        Returns:
+            np.ndarray: The edge vertices of the neighbour tile transformed to the correct edges of the local tile
+        """
+        
         if cog_request is None or cog_request.data is None or cog_request.is_out_of_bounds:
             return None
         
@@ -105,7 +137,17 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         
         return vertices[condition]
 
-    def _get_edge_normals(self, cog_request: CogRequest, direction: Direction):
+    def _get_edge_normals(self, cog_request: CogRequest, direction: Direction) -> np.ndarray:
+        """Get the normals of the edge vertices of the neighbour tile
+
+        Args:
+            cog_request (CogRequest): The CogRequest of the neighbour tile
+            direction (Direction): What edge to get the normals from
+
+        Returns:
+            np.ndarray: The normals of the edge vertices of the neighbour tile
+        """
+        
         if cog_request is None or cog_request.data is None or cog_request.is_out_of_bounds:
             return None
         
@@ -115,13 +157,26 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         
         return normals[condition]
         
-    def _get_vertice_condition(self, vertices, direction):
+    def _get_vertice_condition(self, vertices, direction) -> np.ndarray:
+        """Based on vertices and a edge direction return a condition on what vertices to select
+
+        Args:
+            vertices (ndarray): vertices of a processed cog
+            direction (Direction): direction to select the vertices
+
+        Raises:
+            ValueError: Invalid direction
+
+        Returns:
+            np.ndarray: Condition on what vertices to select
+        """
+        
         tile_size = 255 
         
-        if direction in {Direction.NORTH}:
+        if direction == Direction.NORTH:
             vertices[:, 1] -= tile_size
             return vertices[:, 1] == 0             
-        if direction in {Direction.NORTHEAST}:
+        if direction == Direction.NORTHEAST:
             vertices[:, 0] -= tile_size
             vertices[:, 1] -= tile_size
             return (vertices[:, 0] == 0) & (vertices[:, 1] == 0)            
@@ -129,7 +184,7 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
             vertices[:, 0] += tile_size            
             vertices[:, 1] -= tile_size
             return (vertices[:, 0] == tile_size) & (vertices[:, 1] == 0)
-        elif direction in {Direction.EAST}:
+        elif direction == Direction.EAST:
             vertices[:, 0] -= tile_size
             return vertices[:, 0] == 0
         elif direction == Direction.SOUTHEAST:
