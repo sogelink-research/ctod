@@ -2,6 +2,8 @@ import asyncio
 import logging
 import quantized_mesh_encoder.occlusion
 
+from ctod.core import utils
+from ctod.core.cog.cog_reader_pool import CogReaderPool
 from ctod.core.cog.processor.cog_processor_quantized_mesh_grid import CogProcessorQuantizedMeshGrid
 from ctod.core.factory.terrain_factory import TerrainFactory
 from ctod.handlers.index import IndexHandler
@@ -10,11 +12,6 @@ from ctod.handlers.terrain import TerrainHandler
 from ctod.core.math import compute_magnitude
 from tornado import web
 
-
-def patch_occlusion():
-    """monkey patch quantized_mesh_encoder.occlusion with our own compute_magnitude"""
-    
-    quantized_mesh_encoder.occlusion.compute_magnitude = compute_magnitude
 
 def log_request(handler):
     logging.debug("%d %s %.2fms",
@@ -25,9 +22,10 @@ def log_request(handler):
 def make_server(tile_cache_path: str = None):
     """Create a Tornado web server."""
     
-    patch_occlusion()    
+    _patch_occlusion()    
     terrain_factory = TerrainFactory()
     cog_processor_mesh_grid = CogProcessorQuantizedMeshGrid()
+    cog_reader_pool = CogReaderPool()
 
     # Start the periodic cache check in the background
     asyncio.ensure_future(terrain_factory.start_periodic_check())
@@ -42,6 +40,7 @@ def make_server(tile_cache_path: str = None):
                 dict(
                     terrain_factory=terrain_factory,
                     cog_processor=cog_processor_mesh_grid,
+                    cog_reader_pool=cog_reader_pool,
                     tile_cache_path=tile_cache_path
                 ),
             ),
@@ -50,3 +49,8 @@ def make_server(tile_cache_path: str = None):
         static_path="./ctod/templates/static",
         log_function=log_request,
     )    
+    
+def _patch_occlusion():
+    """monkey patch quantized_mesh_encoder.occlusion with our own compute_magnitude"""
+    
+    quantized_mesh_encoder.occlusion.compute_magnitude = compute_magnitude

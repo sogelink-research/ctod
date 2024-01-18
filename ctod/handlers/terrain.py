@@ -24,6 +24,7 @@ class TerrainHandler(BaseHandler):
         self.terrain_factory = kwargs.pop('terrain_factory')
         self.cog_processor = kwargs.pop('cog_processor')
         self.tile_cache_path = kwargs.pop('tile_cache_path')
+        self.cog_reader_pool = kwargs.pop('cog_reader_pool')
         super(TerrainHandler, self).__init__(application, request, **kwargs)
 
     async def get(self, z: int, x: int, y: int):
@@ -63,7 +64,7 @@ class TerrainHandler(BaseHandler):
                 return
             
             terrain_generator = self._get_terrain_generator(meshing_method)            
-            self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, self.cog_processor, terrain_generator, extensions["octvertexnormals"])
+            self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, self.cog_processor, terrain_generator, self.cog_reader_pool, extensions["octvertexnormals"])
             quantized = await self.terrain_factory.handle_request(self.terrain_request)
             
             self._try_save_tile_to_cache(cog, meshing_method, resampling_method, z, x, y, quantized)                

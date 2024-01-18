@@ -1,6 +1,7 @@
 import asyncio
 
 from morecantile import TileMatrixSet
+from ctod.core.cog.cog_reader_pool import CogReaderPool
 from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.cog.cog_request import CogRequest
 from ctod.core.terrain.generator.terrain_generator import TerrainGenerator
@@ -12,7 +13,7 @@ from ctod.core.direction import Direction, move_in_direction
 class TerrainRequest:
     """Request for a terrain tile"""
     
-    def __init__(self, tms: TileMatrixSet, cog: str, z: int, x: int, y: int, resampling_method: str, cog_processor: CogProcessor, terrain_generator: TerrainGenerator, generate_normals = False):
+    def __init__(self, tms: TileMatrixSet, cog: str, z: int, x: int, y: int, resampling_method: str, cog_processor: CogProcessor, terrain_generator: TerrainGenerator, cog_reader_pool: CogReaderPool, generate_normals = False):
         self.tms = tms
         self.cog = cog
         self.z = z
@@ -22,6 +23,7 @@ class TerrainRequest:
         self.cog_processor = cog_processor
         self.terrain_generator = terrain_generator
         self.generate_normals = generate_normals
+        self.cog_reader_pool = cog_reader_pool
         self.wanted_files = []
         self._generate_wanted_files()
         self.key = generate_cog_cache_key(self.cog, self.z, self.x, self.y)
@@ -136,9 +138,9 @@ class TerrainRequest:
         which are the adjecent tiles and the main tile
         """
         
-        self.wanted_files.append(CogRequest(self.tms, self.cog, self.z, self.x, self.y, self.cog_processor, self.resampling_method, self.generate_normals))
+        self.wanted_files.append(CogRequest(self.tms, self.cog, self.z, self.x, self.y, self.cog_processor, self.cog_reader_pool, self.resampling_method, self.generate_normals))
         
         neighbour_tiles = get_neighbor_tiles(self.tms, self.x, self.y, self.z)        
         for tile in neighbour_tiles:
-            self.wanted_files.append(CogRequest(self.tms, self.cog, tile.z, tile.x, tile.y, self.cog_processor, self.resampling_method, self.generate_normals)) 
+            self.wanted_files.append(CogRequest(self.tms, self.cog, tile.z, tile.x, tile.y, self.cog_processor, self.cog_reader_pool, self.resampling_method, self.generate_normals)) 
     

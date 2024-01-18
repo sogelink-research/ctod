@@ -47,7 +47,7 @@ class TerrainFactory:
                     if wanted_file.key not in self.cache:
                         if wanted_file.key not in [item[0].key for item in self.processing_queue._queue]:
                             # Add a new request to the processing queue which handles the download of the cog data
-                            cog_request = CogRequest(wanted_file.tms, wanted_file.cog, wanted_file.z, wanted_file.x, wanted_file.y, wanted_file.cog_processor, wanted_file.resampling_method, wanted_file.generate_normals)
+                            cog_request = CogRequest(wanted_file.tms, wanted_file.cog, wanted_file.z, wanted_file.x, wanted_file.y, wanted_file.cog_processor, wanted_file.cog_reader_pool, wanted_file.resampling_method, wanted_file.generate_normals)
                             await self.processing_queue.put((cog_request,))
                             
                     # If the data is already available, set it in the wanted file
