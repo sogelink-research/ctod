@@ -29,7 +29,6 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -CTOD_LOGGING_L
 ### V1.0 (In progress)
 
 - Pass processor options
-- Test if we can improve performance by reusing readers for the COG (Reader Pool)
 - Pydelatin and/or Martini support
 - Refactoring
 - Cleanup viewer code
