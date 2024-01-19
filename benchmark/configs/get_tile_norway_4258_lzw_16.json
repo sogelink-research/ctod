@@ -1,0 +1,10 @@
+{
+    "count": 1,
+    "cog": "/home/time/Downloads/dtm_norway/norway_4258_lzw_16.tif",
+    "tiles": [
+        { "z": 4, "x": 16, "y": 2},
+        { "z": 6, "x": 67, "y": 10},
+        { "z": 8, "x": 270, "y": 43},
+        { "z": 19, "x": 553588, "y": 88725}
+    ]
+}
