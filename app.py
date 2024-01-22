@@ -12,10 +12,11 @@ def main():
     port = _get_value(args.port, int(os.environ.get('CTOD_PORT', 5000)), 5000)
     tile_cache_path = _get_value(args.tile_cache_path, os.environ.get('CTOD_TILE_CACHE_PATH', None), None)
     logging_level = _get_value(args.logging_level, os.environ.get('CTOD_LOGGING_LEVEL', 'info'), 'info')
+    unsafe = _get_value(args.unsafe, os.environ.get('CTOD_UNSAFE', False), False)
 
     _setup_logging(log_level=getattr(logging, logging_level.upper()))
 
-    app = make_server(tile_cache_path)
+    app = make_server(tile_cache_path, unsafe)
     app.listen(port)
     
     _log_ctod_start(port, tile_cache_path)
@@ -33,6 +34,7 @@ def _parse_args():
     parser.add_argument('--logging-level', choices=['debug', 'info', 'warning', 'error', 'critical'],
                         default='info', help="Logging level")
     parser.add_argument('--port', type=int, default=5000, help="Port to run the application on")
+    parser.add_argument('--unsafe', action='store_true', help='When unsafe all tiles will be loaded, even if there are not enough overviews')
     
     return parser.parse_args()
 

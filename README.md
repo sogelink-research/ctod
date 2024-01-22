@@ -48,6 +48,7 @@ The following options can be set by supplying args to app.py or setting the envi
 |--tile-cache-path|CTOD_TILE_CACHE_PATH|Cache dir, not set = cache disabled|None|
 |--logging-level|CTOD_LOGGING_LEVEL|debug, info, warning, error, critical|info|
 |--port|CTOD_PORT|Port to run the service on|5000|
+|--unsafe|CTOD_UNSAFE|Load unsafe tiles anyway (not enough COG overviews), can result in huge and or stuck requests||
 
 ## Run CTOD
 

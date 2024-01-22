@@ -11,12 +11,12 @@ from ctod.core.math import compute_magnitude
 from tornado import web
 
     
-def make_server(tile_cache_path: str = None):
+def make_server(tile_cache_path: str = None, unsafe: bool = False):
     """Create a Tornado web server."""
     
     _patch_occlusion()    
     terrain_factory = TerrainFactory()
-    cog_reader_pool = CogReaderPool()
+    cog_reader_pool = CogReaderPool(unsafe)
 
     # Start the periodic cache check in the background
     asyncio.ensure_future(terrain_factory.start_periodic_check())

@@ -11,13 +11,14 @@ class CogReaderPool:
     ToDo: Cleanup readers after being unused for a while, doesn't seem to impact memory usage much.
     """
     
-    def __init__(self, max_readers=250):
+    def __init__(self, unsafe: bool = False, max_readers: int = 250):
         """Create a new pool of readers.
 
         Args:
             max_readers (int, optional): Amount of max readers in memory per cog path. Defaults to 250.
         """
         
+        self.unsafe = unsafe
         self.max_readers = max_readers
         self.readers = defaultdict(list)
         self.lock = asyncio.Lock()
@@ -35,7 +36,7 @@ class CogReaderPool:
         
         async with self.lock:
             if cog not in self.readers or len(self.readers[cog]) == 0:
-                reader = CogReader(self, cog, tms)
+                reader = CogReader(self, cog, tms, self.unsafe)
             else:
                 reader = self.readers[cog].pop()
 
