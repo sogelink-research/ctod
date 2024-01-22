@@ -8,9 +8,13 @@ def generate_layer_json(tms, geotiff_path, max_zoom=20):
     """
     
     with COGReader(geotiff_path) as src:
+        
         bounds = src.geographic_bounds
         
-        # Zoom 0 always needs to be 0,0,1,0
+        # Cesium always expects all tiles at zoom 0 (startX: 0, endX: 1)
+        # With the function available_tiles it is likely it only will return 
+        # one tile: startX: 1, endX: 1 for example. So here we skip generating
+        # the first zoom level
         available_tiles = [
             [{"startX": 0, "startY": 0, "endX": 1, "endY": 0}]
         ]

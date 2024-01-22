@@ -176,7 +176,7 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         if direction == Direction.NORTH:
             vertices[:, 1] -= tile_size
             return vertices[:, 1] == 0             
-        if direction == Direction.NORTHEAST:
+        elif direction == Direction.NORTHEAST:
             vertices[:, 0] -= tile_size
             vertices[:, 1] -= tile_size
             return (vertices[:, 0] == 0) & (vertices[:, 1] == 0)            

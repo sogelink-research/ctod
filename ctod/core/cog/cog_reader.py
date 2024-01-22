@@ -1,6 +1,7 @@
 import time
-
-from morecantile import TileMatrixSet
+import math
+import logging
+from morecantile import TileMatrixSet, Tile
 from rio_tiler.io import Reader
 from rio_tiler.models import ImageData
 
@@ -35,8 +36,13 @@ class CogReader:
             resampling_method (str, optional): RasterIO resampling algorithm. Defaults to "bilinear".
 
         Returns:
-            ImageData: _description_
+            ImageData: Image data from the Cloud Optimized GeoTIFF.
         """
+        
+        is_safe = self._check_is_safe(z, x, y)
+        if not is_safe:
+            logging.warning(f"Skipping {self.cog} {z,x,y}, tile is not safe to load, generate more overviews")
+            return None
         
         try:
 
@@ -52,6 +58,30 @@ class CogReader:
         except Exception:
             return None
     
+    def _check_is_safe(self, z: int, x: int, y: int) -> bool:
+        """Check if it is safe to load the tile. 
+        When there are not enough overviews there will be a lot of request to load
+        a tile at a low zoom level. This will cause long load times and high memory usage.
+
+        ToDo: This is an estimation, it is not 100% accurate.        
+        
+        Args:
+            z (int): 
+            x (int): 
+            y (int): 
+
+        Returns:
+            bool: Is it safe to load the tile
+        """
+        
+        tile_bounds = self.tms.xy_bounds(Tile(x=x, y=y, z=z))        
+        tile_wgs = tile_bounds.right - tile_bounds.left
+        #tile_wgs_with_clip = min(tile_bounds.right, self.dataset_bounds.right) - min(tile_bounds.left, dataset_bounds.left)        
+        tile_pixels_needed = tile_wgs * self.pixels_per_wgs        
+        needed_tiles = math.ceil(tile_pixels_needed / self.pixels_per_tile_downsampled)
+        
+        return needed_tiles <= 1        
+            
     def return_reader(self):
         """Done with the reader, return it to the pool."""
         
@@ -62,6 +92,11 @@ class CogReader:
         """Get the reader for the COG."""
         
         self.rio_reader = Reader(self.cog, tms=self.tms)
+        self.dataset_bounds = self.rio_reader.info().bounds
+        self.dataset_width = self.rio_reader.dataset.width
+        self.dataset_wgs_width = self.dataset_bounds.right - self.dataset_bounds.left
+        self.pixels_per_wgs = self.dataset_width / self.dataset_wgs_width
+        self.pixels_per_tile_downsampled = 256 * max(self.rio_reader.dataset.overviews(1))
         
     def _set_nodata_value(self):
         """Set the nodata value for the reader."""
