@@ -49,9 +49,7 @@ class CogReader:
                 logging.warning(f"Loading unsafe tile {self.cog} {z,x,y}, consider generating more overviews")
         
         try:
-
-            image_data = self.rio_reader.tile(tile_z=z, tile_x=x, tile_y=y, resampling_method=resampling_method)
-            
+            image_data = self.rio_reader.tile(tile_z=z, tile_x=x, tile_y=y, resampling_method=resampling_method, align_bounds_with_dataset= True)
             # For now set nodata to 0 if nodata is present in the metadata
             # handle this better later
             if self.nodata_value is not None:

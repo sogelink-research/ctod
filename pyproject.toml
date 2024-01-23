@@ -9,7 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 morecantile = "^5.1.0"
-rio-tiler = "^6.3.0"
+rio-tiler = "^6.3.1"
 pydelatin = "^0.2.7"
 quantized-mesh-encoder = "^0.4.3"
 tornado = "^6.4"
