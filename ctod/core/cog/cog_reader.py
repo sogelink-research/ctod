@@ -1,10 +1,12 @@
 import time
 import math
 import logging
+
+from ctod.core import utils
 from morecantile import TileMatrixSet, Tile
 from rio_tiler.io import Reader
 from rio_tiler.models import ImageData
-
+from rio_tiler.errors import TileOutsideBounds
 
 class CogReader:
     """A reader for a Cloud Optimized GeoTIFF. This class is used to pool readers to 
@@ -40,6 +42,11 @@ class CogReader:
         Returns:
             ImageData: Image data from the Cloud Optimized GeoTIFF.
         """
+        
+        # Spawned COG Request from a tile on the edge can request outside the bounds
+        # of the dataset. Return None in that case.
+        if not self.rio_reader.tile_exists(tile_z=z, tile_x=x, tile_y=y):
+            return None
         
         if z < self.safe_level:
             if not self.unsafe:
@@ -91,9 +98,11 @@ class CogReader:
         for z in range(0, 24):
             tile_bounds = self.tms.xy_bounds(Tile(x=0, y=0, z=z))
             tile_wgs = tile_bounds.right - tile_bounds.left
-            tile_pixels_needed = tile_wgs * pixels_per_wgs
+            tile_wgs_clipped = min(tile_wgs, dataset_wgs_width)
+            tile_pixels_needed = tile_wgs_clipped * pixels_per_wgs
             needed_tiles = math.ceil(tile_pixels_needed / pixels_per_tile_downsampled)
-            if needed_tiles == 1:
+
+            if needed_tiles <= 4:
                 self.safe_level = z
                 break
 
