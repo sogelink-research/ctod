@@ -102,7 +102,7 @@ function configureViewer() {
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
   viewer.camera.setView({
-    destination: new Cesium.Cartesian3.fromDegrees(5.33195, 60.29969, 500),
+    destination: new Cesium.Cartesian3.fromDegrees(5.33195, 60.29969, 2000),
     orientation: {
       heading: Cesium.Math.toRadians(0),
       pitch: Cesium.Math.toRadians(-80),
@@ -136,7 +136,7 @@ function setTerrainProvider(minZoom, maxZoom, cog, resamplingMethod, skipCache, 
           destination: new Cesium.Cartesian3.fromDegrees(
             (bounds[0] + bounds[2]) / 2,
             (bounds[1] + bounds[3]) / 2,
-            500
+            2000
           ),
           orientation: {
             heading: Cesium.Math.toRadians(0),
