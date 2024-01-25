@@ -3,6 +3,7 @@ from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.normals import calculate_normals
 from ctod.core.utils import rescale_positions
 from pydelatin import Delatin
+from tornado import web
 from quantized_mesh_encoder.constants import WGS84
 from quantized_mesh_encoder.ecef import to_ecef
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
@@ -14,7 +15,8 @@ class CogProcessorQuantizedMeshDelatin(CogProcessor):
     - Calculate normals
     """
     
-    def __init__(self):
+    def __init__(self, request: web.RequestHandler):
+        super().__init__()
         self.ellipsoid: Ellipsoid = WGS84
         
     def process(self, cog_request: CogRequest) -> tuple:

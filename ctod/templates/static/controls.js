@@ -1,4 +1,4 @@
-var module, pane, terrainFolder, layerFolder, materialFolder, urlParams;
+var module, pane, terrainFolder, layerFolder, materialFolder;
 
 var minZoomValue = 1;
 var maxZoomValue = 21;
@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     module = await import(
       "https://cdn.jsdelivr.net/npm/tweakpane@4.0.1/dist/tweakpane.min.js"
     );
-    urlParams = new URLSearchParams(window.location.search);
     setupTweakpane();
     loadCesium();
   } catch (error) {
@@ -223,13 +222,13 @@ function updateTerrainProvider() {
 }
 
 function getStringParameterValue(param, defaultValue) {
-  return urlParams.get(param) || defaultValue;
+  return getUrlParamIgnoreCase(param) || defaultValue;
 }
 
 function getIntParameterValue(param, defaultValue) {
-  return urlParams.get(param) ? parseInt(urlParams.get(param)) : defaultValue;
+  return getUrlParamIgnoreCase(param) ? parseInt(getUrlParamIgnoreCase(param)) : defaultValue;
 }
 
 function getBoolParameterValue(param, defaultValue) {
-  return urlParams.get(param) ? urlParams.get(param).toLowerCase() === "true" ? true : false : defaultValue;
+  return getUrlParamIgnoreCase(param) ? getUrlParamIgnoreCase(param).toLowerCase() === "true" ? true : false : defaultValue;
 }

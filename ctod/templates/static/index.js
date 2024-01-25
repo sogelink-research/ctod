@@ -45,14 +45,13 @@ function initializeLayers() {
   gridLayer.show = false;
   coordinateLayer.show = false;
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const minZoom = urlParams.get("minZoom") || 1;
-  const maxZoom = urlParams.get("maxZoom") || 21;
+  const minZoom = getUrlParamIgnoreCase("minZoom") || 1;
+  const maxZoom = getUrlParamIgnoreCase("maxZoom") || 21;
   const cog =
-    urlParams.get("cog") ||
+  getUrlParamIgnoreCase("cog") ||
     "./ctod/files/test_cog.tif";
-  const skipCache = urlParams.get("skipCache") || false;
-  const meshingMethod = urlParams.get("meshingMethod") || "grid";
+  const skipCache = getUrlParamIgnoreCase("skipCache") || false;
+  const meshingMethod = getUrlParamIgnoreCase("meshingMethod") || "grid";
   setTerrainProvider(minZoom, maxZoom, cog, "bilinear", skipCache, meshingMethod);
 
   streetsLayer.show = true;

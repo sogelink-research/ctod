@@ -28,10 +28,11 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -CTOD_LOGGING_L
 
 ### V1.0 (In progress)
 
-- Pass processor options
 - Pydelatin and/or Martini support
 - Refactoring
 - Cleanup viewer code
+- Wiki Optimizing COG/Performance
+- Test big VRT
 
 ### Future work (V1.1)
 
@@ -98,6 +99,7 @@ Returns a sample Cesium viewer, all values can be changed using the control pane
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'bilinear'
 - **cog** (required): Path or URL to COG file.
 - **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
+- **meshingMethod**: The Meshing method to use: 'grid', 'delatin'
 
 #### Example
 
@@ -140,6 +142,12 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'bilinear'
 - **cog** (required): Path or URL to COG file.
 - **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
+- **meshingMethod**: The Meshing method to use: 'grid', 'delatin'
+
+#### Parameters for meshing method: grid
+
+- **defaultGridSize**: The default grid size (amount of rows/cols) to use if there is no specific zoomGridSizes defined for a requested tile, Default (20)
+- **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default ({"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35})
 
 #### Example
 

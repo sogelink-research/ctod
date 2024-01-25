@@ -128,7 +128,7 @@ class TerrainHandler(BaseHandler):
         """
         
         cog_processor = self.cog_processors.get(meshing_method, self.cog_processors["default"])
-        return cog_processor()
+        return cog_processor(self)
         
     def _return_empty_terrain(self, tms: TileMatrixSet, cog: str, meshing_method: str, resampling_method, z: int, x: int, y: int):
         """Return an empty terrain tile
