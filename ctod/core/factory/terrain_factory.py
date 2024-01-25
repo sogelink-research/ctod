@@ -19,7 +19,7 @@ class TerrainFactory:
     def __init__(self, cache_expiry_seconds=10):
         self.cache_expiry_seconds = cache_expiry_seconds
         self.cache = {}
-        self.open_requests = {}
+        self.open_requests = set()
         self.terrain_requests = {}
         self.processing_queue = asyncio.Queue()
         self.lock = asyncio.Lock()
@@ -77,7 +77,7 @@ class TerrainFactory:
         async with self.lock:
             while not self.processing_queue.empty():            
                 cog_request, = await self.processing_queue.get()
-                self.open_requests[cog_request.key] = True
+                self.open_requests.add(cog_request.key)
                 future = cog_request.download_tile_async()
                 asyncio.ensure_future(self._process_completed_cog_request(cog_request, future))
 
@@ -87,7 +87,7 @@ class TerrainFactory:
         # Process the completed request
         async with self.lock:
             if cog_request:
-                del self.open_requests[cog_request.key]
+                self.open_requests.remove(cog_request.key)
                 self.cache[cog_request.key] = cog_request
 
                 for _, terrain_request in list(self.terrain_requests.items()):
@@ -114,7 +114,7 @@ class TerrainFactory:
                 if wanted_file[0].key not in [wanted_file.key for terrain_request in self.terrain_requests.values() for wanted_file in terrain_request.wanted_files]:
                     self.processing_queue._queue.remove(wanted_file)
                 if wanted_file[0].key in self.open_requests:
-                    del self.open_requests[wanted_file[0].key]
+                    self.open_requests.remove(wanted_file[0].key)
                     
     async def _process_terrain_requests(self):
         """Check and run process on terrain requests when ready for processing"""
@@ -152,4 +152,4 @@ class TerrainFactory:
                 del self.cache[key]
             
         
-        logging.debug(f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache)}")
+        logging.debug(f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache)}, open requests: {len(self.open_requests)}, queue size: {self.processing_queue.qsize()}")
