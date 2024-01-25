@@ -19,8 +19,8 @@ class BaseHandler(web.RequestHandler):
             min_zoom (int): The minimum zoom level. Defaults to 1
         """
         
-        min_zoom = int(self.get_argument("minZoom", default=1))
-
+        min_zoom = int(self.get_argument_ignore_case("minZoom", default=1))
+        
         if min_zoom < 1:
             min_zoom = 1
             
@@ -33,7 +33,7 @@ class BaseHandler(web.RequestHandler):
             max_zoom (int): The maximum zoom level. Defaults to 21
         """
         
-        return int(self.get_argument("maxZoom", default=21))
+        return int(self.get_argument_ignore_case("maxZoom", default=21))
 
     def get_resampling_method(self) -> str:
         """Get the resampling method from the request
@@ -42,7 +42,7 @@ class BaseHandler(web.RequestHandler):
             resampling_method (str): COG resampling method. Defaults to bilinear
         """
         
-        return self.get_argument("resamplingMethod", default="bilinear")
+        return self.get_argument_ignore_case("resamplingMethod", default="bilinear")
     
     def get_cog(self) -> str:
         """Get the COG path from the request
@@ -51,7 +51,7 @@ class BaseHandler(web.RequestHandler):
             str: The COG path. Defaults to ./ctod/files/test_cog.tif
         """
         
-        return self.get_argument("cog", default="./ctod/files/test_cog.tif")
+        return self.get_argument_ignore_case("cog", default="./ctod/files/test_cog.tif")
 
     def get_meshing_method(self) -> str:
         """Get the method used for meshing
@@ -60,7 +60,7 @@ class BaseHandler(web.RequestHandler):
             str: The meshing method. Defaults grid
         """
         
-        return self.get_argument("meshingMethod", default="grid")
+        return self.get_argument_ignore_case("meshingMethod", default="grid")
     
     def get_skip_cache(self) -> str:
         """Get if the cache should be skipped
@@ -69,10 +69,9 @@ class BaseHandler(web.RequestHandler):
             bool: True if the cache should be skipped, False otherwise
         """
         
-        skip_cache = self.get_argument("skipCache", default="false")
+        skip_cache = self.get_argument_ignore_case("skipCache", default="false")
         return skip_cache.lower() == "true"        
-        
-    
+ 
     def get_extensions(self) -> str:
         """Get the accept header from the request
 
@@ -111,3 +110,11 @@ class BaseHandler(web.RequestHandler):
                             found_extensions[extension] = True
 
         return found_extensions
+
+    def get_argument_ignore_case(self, name, default, strip=True):
+        for arg_name, arg_values in self.request.arguments.items():
+
+            if arg_name.lower() == name.lower():
+                return arg_values[-1].decode() if isinstance(arg_values[-1], bytes) else arg_values[-1]
+            
+        return default
