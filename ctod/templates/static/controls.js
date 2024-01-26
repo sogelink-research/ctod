@@ -171,7 +171,8 @@ function createTerrainPane() {
   const meshingMethod = terrainFolder.addBinding(PARAMS, "meshing", {
     options: {
       grid: "grid",
-      delatin: "delatin"
+      delatin: "delatin",
+      martini: "martini"
     },
   });
 

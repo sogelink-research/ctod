@@ -1,15 +1,18 @@
 import logging
 
+from pymartini import Martini
 from asyncio import ensure_future
 from ctod.core import utils
 from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.cog.processor.cog_processor_quantized_mesh_grid import CogProcessorQuantizedMeshGrid
 from ctod.core.cog.processor.cog_processor_quantized_mesh_delatin import CogProcessorQuantizedMeshDelatin
+from ctod.core.cog.processor.cog_processor_quantized_mesh_martini import CogProcessorQuantizedMeshMartini
 from ctod.core.terrain.generator.terrain_generator import TerrainGenerator
 from ctod.core.terrain.terrain_request import TerrainRequest
 from ctod.core.terrain.empty_tile import generate_empty_tile
 from ctod.core.terrain.generator.terrain_generator_quantized_mesh_grid import TerrainGeneratorQuantizedMeshGrid
 from ctod.core.terrain.generator.terrain_generator_quantized_mesh_delatin import TerrainGeneratorQuantizedMeshDelatin
+from ctod.core.terrain.generator.terrain_generator_quantized_mesh_martini import TerrainGeneratorQuantizedMeshMartini
 from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
 from ctod.handlers.base import BaseHandler
 from morecantile import TileMatrixSet
@@ -33,11 +36,13 @@ class TerrainHandler(BaseHandler):
             "default": CogProcessorQuantizedMeshGrid,
             "grid": CogProcessorQuantizedMeshGrid,
             "delatin": CogProcessorQuantizedMeshDelatin,
+            "martini": CogProcessorQuantizedMeshMartini
         }
         self.terrain_generators = {
             "default": TerrainGeneratorQuantizedMeshGrid,
             "grid": TerrainGeneratorQuantizedMeshGrid,
-            "delatin": TerrainGeneratorQuantizedMeshDelatin            
+            "delatin": TerrainGeneratorQuantizedMeshDelatin,
+            "martini": TerrainGeneratorQuantizedMeshMartini       
         }
         
         super(TerrainHandler, self).__init__(application, request, **kwargs)
