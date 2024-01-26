@@ -56,7 +56,9 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
                 duplicated_vertices = neighbour_vertices[
                     (neighbour_vertices[:, 0] == vertice[0]) & (neighbour_vertices[:, 1] == vertice[1])
                 ]
-                if duplicated_vertices.size > 0:
+                duplicated_vertices = np.concatenate((duplicated_vertices, vertice.reshape(1, 3)), axis=0)
+                
+                if len(duplicated_vertices) > 1:
                     # average the height
                     vertice[2] = np.average(duplicated_vertices[:, 2])
                     

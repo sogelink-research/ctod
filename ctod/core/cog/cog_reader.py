@@ -96,7 +96,7 @@ class CogReader:
         dataset_wgs_width = dataset_bounds.right - dataset_bounds.left
         pixels_per_wgs = dataset_width / dataset_wgs_width
         pixels_per_tile_downsampled = 256 * max(self.rio_reader.dataset.overviews(1))
-                
+        
         for z in range(0, 24):
             tile_bounds = self.tms.xy_bounds(Tile(x=0, y=0, z=z))
             tile_wgs = tile_bounds.right - tile_bounds.left
