@@ -632,13 +632,13 @@ all = ["h5py", "netCDF4"]
 
 [[package]]
 name = "morecantile"
-version = "5.2.1"
+version = "5.2.2"
 description = "Construct and use map tile grids (a.k.a TileMatrixSet / TMS)."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "morecantile-5.2.1-py3-none-any.whl", hash = "sha256:c4fb1c6746a0d336ee05a4630ca720756441c8734edb29bbed9e0196668803dc"},
-    {file = "morecantile-5.2.1.tar.gz", hash = "sha256:d1d5c34d537b97eaa0657b38c7197f99ae5ad9efdd78f85a0fbb749b8ad1fb82"},
+    {file = "morecantile-5.2.2-py3-none-any.whl", hash = "sha256:4ca803ad3ef9f255f35045c24f8756609588c4e135657abb8973c286e9344be2"},
+    {file = "morecantile-5.2.2.tar.gz", hash = "sha256:0fd9a0e913ada4de73a748d8b542c47def491d17ac016fad731f5d21ff265b3f"},
 ]
 
 [package.dependencies]
@@ -1045,6 +1045,56 @@ plugins = ["importlib-metadata"]
 windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
+name = "pymartini"
+version = "0.4.4"
+description = "A Python port of Martini for fast terrain mesh generation"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pymartini-0.4.4-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:8965d3a806bf90b97a338864f25db8ada27ef7e3b8d2490ea1c2f9dbcf3e0a28"},
+    {file = "pymartini-0.4.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:631d13b4a84d90c343029a1e9146458cf222a7eecc99d355deade778d653cddc"},
+    {file = "pymartini-0.4.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:40e8c9b31c99609afa380d7856097db076d9cbfa099badfca17cb78ec9eb69ff"},
+    {file = "pymartini-0.4.4-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:22e31c205943e2e1accfcc4ac8e85f80762b0ee849f74fec9ed2d127169b6f22"},
+    {file = "pymartini-0.4.4-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:d90347ceef21d9e20e43ec48bf720ce0aab48be46ba26d5abaf4b5da9b2a30db"},
+    {file = "pymartini-0.4.4-cp310-cp310-win_amd64.whl", hash = "sha256:be5970c8ae940afbf526a12e81a4e0b87c3475ea6db999df1495ac5d15717422"},
+    {file = "pymartini-0.4.4-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:cf0d03fa90461ad09f0367edc1271c37c595fab48b5086ae3b0f3da38b043661"},
+    {file = "pymartini-0.4.4-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:57b32b257b83611ea45286783fe25a30b6bde6ce4ccab009d3599ed45b7456bc"},
+    {file = "pymartini-0.4.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d8cd3e5f2fee3bc4bf7772c8e8bac2d9c4db86cdf4cc95b8438e611e9e11dc78"},
+    {file = "pymartini-0.4.4-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:07b0bef0eafcd64f9751d296d10cce4498144e493fdcce23312b57b3ae7675d0"},
+    {file = "pymartini-0.4.4-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:3a63f2b597b142b616b0819d67fecfcf5ca1fe6297cd40267031b75c711a4c29"},
+    {file = "pymartini-0.4.4-cp311-cp311-win_amd64.whl", hash = "sha256:247cb7479f944935b33c94b7d0317c7c72c8848da68a5820f7c6dde056ed946d"},
+    {file = "pymartini-0.4.4-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:d61991bcc2e55799ec41dce2adf56869b58fdaacf7c74876e0854e94e915f161"},
+    {file = "pymartini-0.4.4-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bd8e8e1b1b86854cc1a031efb9277f3c9d57c5404a76a622e9ca0406d8a713c8"},
+    {file = "pymartini-0.4.4-cp36-cp36m-musllinux_1_1_i686.whl", hash = "sha256:e22817f586dfa2420316b4f2d0f628fb764a283ca3c09107664e65891dd20baa"},
+    {file = "pymartini-0.4.4-cp36-cp36m-musllinux_1_1_x86_64.whl", hash = "sha256:3103892f54a1b456ae2fd48df06c2a1ffa45411f35b41f42b36a93c3db702386"},
+    {file = "pymartini-0.4.4-cp36-cp36m-win_amd64.whl", hash = "sha256:61386d0226f3e19abdec277ba701af986bfddacde8185e47cad367a9e37a2888"},
+    {file = "pymartini-0.4.4-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:d35fa38bd0d89d9dbdaf6532300b11999134f756ad9393d7f2052fb8689126d2"},
+    {file = "pymartini-0.4.4-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:136a16c5c8cee826da77f44a06ff940d5fec2d6818de543dcd8c169c86a052d6"},
+    {file = "pymartini-0.4.4-cp37-cp37m-musllinux_1_1_i686.whl", hash = "sha256:6b6ee47afaee7bd66697c2fef713ea17ccf5c6b6926813790154da63ba43982a"},
+    {file = "pymartini-0.4.4-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:789c8aa13ec6e14db7666ca07b52e2b7160b1cd36daf0ad7cf97eae0317add64"},
+    {file = "pymartini-0.4.4-cp37-cp37m-win_amd64.whl", hash = "sha256:90d1862ae59d1f5b82e3bcef53c129409982603377181af58d34b33aa96d3577"},
+    {file = "pymartini-0.4.4-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:014b62ec5d66273a2c4e4be651f19d37742a7774c91caff76f8506f29762d022"},
+    {file = "pymartini-0.4.4-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:f3d161e892d4e3cdd569d79b77a2958856528dae39292aa02a799832ef8eaf25"},
+    {file = "pymartini-0.4.4-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d658403f8b2eea379d91c2df2d89e25712361d2b5aa4138a0fb22efb4559ce38"},
+    {file = "pymartini-0.4.4-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:b5f62cfc809e60fd508242f2865a83ba20d77c9958dd0987cfe71a84166108dd"},
+    {file = "pymartini-0.4.4-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:abedb8d6a82c383b7dac6e737f151e9c5b9eef16dcb6921ff615bc8375f53ffc"},
+    {file = "pymartini-0.4.4-cp38-cp38-win_amd64.whl", hash = "sha256:37a4517be00148e0a62c32bc84802494b9ead15cbd9ed4bbdf62e8802aca354c"},
+    {file = "pymartini-0.4.4-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:8f5660d1c259e49e7bc26eb65d087f30c8b3d743620ea599ba9229189665f229"},
+    {file = "pymartini-0.4.4-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:15b7720830b9c78378835b072e473b42cab45c0913fb8fbdd297820f2b85a3bf"},
+    {file = "pymartini-0.4.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:895becb907412cbbef1e21372846350dfe376923bec992b79464bf31ec89735c"},
+    {file = "pymartini-0.4.4-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:eeea9f98c533509360a10cee21b1ec12c1b20334e5f0fbcd3087183e77937260"},
+    {file = "pymartini-0.4.4-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:6b3d5e15ca7478ed44281277dd9ee5da9e7f762da0c4f1991fdafaab44b453e1"},
+    {file = "pymartini-0.4.4-cp39-cp39-win_amd64.whl", hash = "sha256:667bbdda7775e5345fc07e96849874a7a3c969ca346cc71e49a2e67109a2fabc"},
+    {file = "pymartini-0.4.4.tar.gz", hash = "sha256:aa074e68b8ae463b73a741bfe9d299d16f4b6537779b26dda1e7575025ee981b"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[package.extras]
+test = ["imageio", "pytest", "pytest-benchmark"]
+
+[[package]]
 name = "pyparsing"
 version = "3.1.1"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -1254,13 +1304,13 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rio-tiler"
-version = "6.3.1"
+version = "6.4.0"
 description = "User friendly Rasterio plugin to read raster datasets."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "rio_tiler-6.3.1-py3-none-any.whl", hash = "sha256:a0133e6b967b740fc6366895ebe14a5f374bb865b707cd15140a16e95827d3b8"},
-    {file = "rio_tiler-6.3.1.tar.gz", hash = "sha256:089624b6528247d214b7dced18d703a1611755171360be56d7ce56a1c71d0ba3"},
+    {file = "rio_tiler-6.4.0-py3-none-any.whl", hash = "sha256:a5a0661c1e921e8c0191fe5aee3f218c759264f0d3a690ab259e1616afa35ac7"},
+    {file = "rio_tiler-6.4.0.tar.gz", hash = "sha256:7319995ac13c7f7ee16967e920ae196ea36f9c0dab9747372d962184d50a5c1e"},
 ]
 
 [package.dependencies]
@@ -1532,4 +1582,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f5a8d54f4cfe5f4e9d88ffb90311b82e6cf2b10c6b31b9fe494474512425c478"
+content-hash = "261c1334b644af58ac4f2093b78abb030582ff739eff743136ff9cbd054898cf"

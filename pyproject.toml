@@ -8,9 +8,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-morecantile = "^5.1.0"
-rio-tiler = "^6.3.1"
+morecantile = "^5.2.2"
+rio-tiler = "^6.4.0"
 pydelatin = "^0.2.7"
+pymartini = "^0.4.4"
 quantized-mesh-encoder = "^0.4.3"
 tornado = "^6.4"
 triangle = "^20230923"
