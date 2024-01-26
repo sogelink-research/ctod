@@ -59,7 +59,8 @@ class CogRequest:
         return await asyncio.wrap_future(future)
 
     def _download(self, reader: CogReader):
-        dowloaded_data = reader.download_tile(self.x, self.y, self.z, self.resampling_method)
+        kwargs = self.cog_processor.get_reader_kwargs()
+        dowloaded_data = reader.download_tile(self.x, self.y, self.z, self.resampling_method, **kwargs)
         
         if dowloaded_data is not None:
             self.data = dowloaded_data

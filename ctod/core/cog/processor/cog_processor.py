@@ -7,3 +7,7 @@ class CogProcessor(ABC):
     @abstractmethod
     def process(self, cog_request):
         pass
+    
+    
+    def get_reader_kwargs(self):
+        return {}
