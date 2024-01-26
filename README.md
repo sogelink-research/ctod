@@ -7,7 +7,7 @@ CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynami
 ## TL;DR
 
 ```sh
-docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -CTOD_LOGGING_LEVEL=info -e CTOD_TILE_CACHE_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -e CTOD_LOGGING_LEVEL=info -e CTOD_TILE_CACHE_PATH=/cache ghcr.io/sogelink-research/ctod:latest
 ```
 
 [Open the local running demo viewer](http://localhost:5000)
