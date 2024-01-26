@@ -34,7 +34,7 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
             quantized_empty_tile = generate_empty_tile(main_cog.tms, main_cog.z, main_cog.x, main_cog.y)
             return quantized_empty_tile
         
-        vertices, triangles, normals = main_cog.processed_data
+        vertices, triangles, normals, rescaled = main_cog.processed_data
 
         n = terrain_request.get_neighbour_file(Direction.NORTH)
         ne = terrain_request.get_neighbour_file(Direction.NORTHEAST)
@@ -67,9 +67,7 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
                         ]
                         normals[i] = np.average(np.concatenate((duplicated_normals, normals[i].reshape(1, 3)), axis=0), axis=0)
 
-        # Rescale the vertices to the tile bounds and create quantized mesh
-        rescaled_vertices = rescale_positions(vertices, main_cog.tile_bounds, flip_y=False)
-        quantized = quantize(rescaled_vertices, triangles, normals)
+        quantized = quantize(rescaled, triangles, normals)
         
         return quantized
     
