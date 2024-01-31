@@ -47,7 +47,7 @@ class CogReaderMosaic:
             x (int): x tile index.
             y (int): y tile index.
             z (int): z tile index.
-            geotiff_path (str): Path or URL to the Cloud Optimized GeoTIFF.
+            loop (asyncio.AbstractEventLoop): The main loop
             resampling_method (str, optional): RasterIO resampling algorithm. Defaults to "bilinear".
             kwargs (optional): Options to forward to the `rio_reader.tile` method.
 

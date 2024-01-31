@@ -2,7 +2,7 @@ import asyncio
 import time
 
 from ctod.core import utils
-from ctod.core.cog.cog_reader import CogReader
+from ctod.core.cog.reader.cog_reader import CogReader
 from ctod.core.cog.cog_reader_pool import CogReaderPool
 from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.utils import generate_cog_cache_key
@@ -54,13 +54,13 @@ class CogRequest:
         
         loop = asyncio.get_event_loop()
         reader = await self.cog_reader_pool.get_reader(self.cog, self.tms)
-        partial_download = partial(self._download, reader)
+        partial_download = partial(self._download, reader, loop)
         future = loop.run_in_executor(None, partial_download)
         return await asyncio.wrap_future(future)
 
-    def _download(self, reader: CogReader):
+    def _download(self, reader: CogReader, loop):
         kwargs = self.cog_processor.get_reader_kwargs()
-        dowloaded_data = reader.download_tile(self.x, self.y, self.z, self.resampling_method, **kwargs)
+        dowloaded_data = reader.download_tile(self.x, self.y, self.z, loop, self.resampling_method, **kwargs)
         
         if dowloaded_data is not None:
             self.data = dowloaded_data

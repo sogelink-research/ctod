@@ -1,49 +1,112 @@
 import json
+import os
+import requests
 
+from ctod.core.utils import get_dataset_type
 from rio_tiler.io import COGReader
+from morecantile import TileMatrixSet
 
-def generate_layer_json(tms, geotiff_path, max_zoom=20):
-    """
-    Dynamically generate a layer.json for Cesium based on a COG.
+
+def generate_layer_json(tms: TileMatrixSet, file_path: str, max_zoom: int = 20) -> str:
+    """Dynamically generate a layer.json for Cesium based on input file.
+
+    Args:
+        tms (TileMatrixSet): The TileMatrixSet to use
+        file_path (str): Path to the dataset
+        max_zoom (int, optional): Maximum zoom levels to generate info for. Defaults to 20.
+
+    Returns:
+        str: JSON string of the layer.json
     """
     
-    with COGReader(geotiff_path) as src:
-        
+    type = get_dataset_type(file_path)
+    
+    if type == "mosaic":
+        return _generate_ctod_layer_json(tms, file_path, max_zoom)
+    
+    return _generate_default_layer_json(tms, file_path, max_zoom)
+
+def _generate_default_layer_json(tms: TileMatrixSet, file_path: str, max_zoom: int = 20) -> str:
+    """Dynamically generate a layer.json for Cesium based on input file.
+
+    Args:
+        tms (TileMatrixSet): The TileMatrixSet to use
+        file_path (str): Path to the dataset
+        max_zoom (int, optional): Maximum zoom levels to generate info for. Defaults to 20.
+
+    Returns:
+        str: JSON string of the layer.json
+    """
+    
+    with COGReader(file_path) as src:    
         bounds = src.geographic_bounds
-        
-        # Cesium always expects all tiles at zoom 0 (startX: 0, endX: 1)
-        # With the function available_tiles it is likely it only will return 
-        # one tile: startX: 1, endX: 1 for example. So here we skip generating
-        # the first zoom level
-        available_tiles = [
-            [{"startX": 0, "startY": 0, "endX": 1, "endY": 0}]
-        ]
-        
-        # Generate available tiles for zoom levels 1-20
-        for zoom in range(1, max_zoom + 1):
-            start_x, start_y, end_x, end_y = get_cesium_index_bounds(tms, bounds[0], bounds[1], bounds[2], bounds[3], zoom)
-            available_tiles.append([{"startX": start_x, "startY": start_y, "endX": end_x, "endY": end_y}])
+        return _create_json(bounds, tms, max_zoom)
 
-        # Generate the layer.json
-        layer_json = {
-            "tilejson": "2.1.0",
-            "name": "CTOD",
-            "description": "Cesium Terrain on Demand",
-            "version": "1.1.0",
-            "format": "quantized-mesh-1.0",
-            "attribution": "",
-            "schema": "tms",
-            "extensions": ["octvertexnormals"],
-            "tiles": ["{z}/{x}/{y}.terrain?v={version}"],
-            "projection": "EPSG:4326",
-            "bounds": [0.00, -90.00, 180.00, 90.00],
-            "cogBounds": bounds,
-            "available": available_tiles
-        }
+def _generate_ctod_layer_json(tms: TileMatrixSet, file_path: str, max_zoom: int = 20) -> str:
+    """Dynamically generate a layer.json for Cesium based on input file.
 
-        return json.dumps(layer_json, indent=2)
+    Args:
+        tms (TileMatrixSet): The TileMatrixSet to use
+        file_path (str): Path to the dataset
+        max_zoom (int, optional): Maximum zoom levels to generate info for. Defaults to 20.
+
+    Returns:
+        str: JSON string of the layer.json
+    """
     
-def get_cesium_index_bounds(
+    response = requests.get(file_path)
+    response.raise_for_status()
+    
+    # Load the JSON content
+    datasets_json = response.json()
+    
+    return _create_json(datasets_json["extent"], tms, max_zoom)
+
+def _create_json(bounds: list, tms: TileMatrixSet, max_zoom: int) -> str:
+    """Create the layer.json
+
+    Args:
+        bounds (list): Bounds of the full dataset [left, bottom, right, top]
+        tms (TileMatrixSet): The TileMatrixSet to use
+        max_zoom (int): Maximum zoom levels to generate info for
+
+    Returns:
+        str: JSON string of the layer.json
+    """
+    
+    # Cesium always expects all tiles at zoom 0 (startX: 0, endX: 1)
+    # With the function available_tiles it is likely it only will return 
+    # one tile: startX: 1, endX: 1 for example. So here we skip generating
+    # the first zoom level
+    available_tiles = [
+        [{"startX": 0, "startY": 0, "endX": 1, "endY": 0}]
+    ]
+    
+    # Generate available tiles for zoom levels 1-20
+    for zoom in range(1, max_zoom + 1):
+        start_x, start_y, end_x, end_y = _get_cesium_index_bounds(tms, bounds[0], bounds[1], bounds[2], bounds[3], zoom)
+        available_tiles.append([{"startX": start_x, "startY": start_y, "endX": end_x, "endY": end_y}])
+
+    # Generate the layer.json
+    layer_json = {
+        "tilejson": "2.1.0",
+        "name": "CTOD",
+        "description": "Cesium Terrain on Demand",
+        "version": "1.1.0",
+        "format": "quantized-mesh-1.0",
+        "attribution": "",
+        "schema": "tms",
+        "extensions": ["octvertexnormals"],
+        "tiles": ["{z}/{x}/{y}.terrain?v={version}"],
+        "projection": "EPSG:4326",
+        "bounds": [0.00, -90.00, 180.00, 90.00],
+        "cogBounds": bounds,
+        "available": available_tiles
+    }
+
+    return json.dumps(layer_json, indent=2)
+
+def _get_cesium_index_bounds(
     tms,
     west: float,
     south: float,

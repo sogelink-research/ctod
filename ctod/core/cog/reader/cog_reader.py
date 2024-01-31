@@ -1,12 +1,11 @@
+from asyncio import AbstractEventLoop
 import time
 import math
 import logging
 
-from ctod.core import utils
 from morecantile import TileMatrixSet, Tile
 from rio_tiler.io import Reader
 from rio_tiler.models import ImageData
-from rio_tiler.errors import TileOutsideBounds
 from typing import Any
 
 class CogReader:
@@ -29,7 +28,7 @@ class CogReader:
         
         self.rio_reader.close()
         
-    def download_tile(self, x: int, y: int, z: int, resampling_method="bilinear", **kwargs: Any) -> ImageData:
+    def download_tile(self, x: int, y: int, z: int, loop: AbstractEventLoop, resampling_method="bilinear", **kwargs: Any) -> ImageData:
         """Retrieve an image from a Cloud Optimized GeoTIFF based on a tile index.
 
         Args:
@@ -37,7 +36,7 @@ class CogReader:
             x (int): x tile index.
             y (int): y tile index.
             z (int): z tile index.
-            geotiff_path (str): Path or URL to the Cloud Optimized GeoTIFF.
+            loop (asyncio.AbstractEventLoop): The main loop
             resampling_method (str, optional): RasterIO resampling algorithm. Defaults to "bilinear".
             kwargs (optional): Options to forward to the `rio_reader.tile` method.
 
@@ -68,7 +67,7 @@ class CogReader:
         
         except Exception:
             return None       
-            
+        
     def return_reader(self):
         """Done with the reader, return it to the pool."""
         

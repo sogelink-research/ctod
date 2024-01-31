@@ -1,8 +1,10 @@
 import asyncio
 import logging
 
+from ctod.core.utils import get_dataset_type
 from collections import defaultdict
-from ctod.core.cog.cog_reader import CogReader
+from ctod.core.cog.reader.cog_reader import CogReader
+from ctod.core.cog.reader.cog_reader_mosaic import CogReaderMosaic
 from morecantile import TileMatrixSet
 
 
@@ -34,13 +36,19 @@ class CogReaderPool:
             CogReader: A reader for the COG
         """
         
+        type = get_dataset_type(cog)
+
         async with self.lock:
             if cog not in self.readers or len(self.readers[cog]) == 0:
-                reader = CogReader(self, cog, tms, self.unsafe)
+                if type == "mosaic":
+                    reader = CogReaderMosaic(self, cog, tms, self.unsafe)
+                else:
+                    reader = CogReader(self, cog, tms, self.unsafe)
             else:
                 reader = self.readers[cog].pop()
 
             return reader
+
 
     def return_reader(self, reader: CogReader):
         """Return a reader to the pool adding it back to the list of readers for the COG

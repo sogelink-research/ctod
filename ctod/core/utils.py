@@ -1,7 +1,28 @@
 import numpy as np
+import os
 
 from morecantile import Tile, TileMatrixSet, BoundingBox, tms
 
+
+def get_dataset_type(file_path: str) -> str:
+    """Get the type of dataset based on the file extension.
+    ToDo: Use enum
+    
+    Args:
+        file_path (str): Path to the dataset
+
+    Returns:
+        str: Type of dataset
+    """
+    
+    _, extension = os.path.splitext(file_path)
+    if extension == ".ctod" or extension == ".json":
+        return "mosaic"
+    elif extension == ".vrt":
+        return "vrt"
+    else:
+        return "cog"
+    
 def generate_cog_cache_key(cog: str, z: int, x: int, y: int) -> str:
     """
     Generate a key for the mesh cache.
