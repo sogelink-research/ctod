@@ -1,5 +1,7 @@
 import asyncio
+import copy
 import logging
+from ctod.core.cog.dataset_configs import DatasetConfigs
 
 from ctod.core.utils import get_dataset_type
 from collections import defaultdict
@@ -20,6 +22,7 @@ class CogReaderPool:
             max_readers (int, optional): Amount of max readers in memory per cog path. Defaults to 250.
         """
         
+        self.configs = DatasetConfigs()
         self.unsafe = unsafe
         self.max_readers = max_readers
         self.readers = defaultdict(list)
@@ -40,10 +43,12 @@ class CogReaderPool:
 
         async with self.lock:
             if cog not in self.readers or len(self.readers[cog]) == 0:
+                config = self.configs.get_config(cog)
+                
                 if type == "mosaic":
-                    reader = CogReaderMosaic(self, cog, tms, self.unsafe)
+                    reader = CogReaderMosaic(self, config, cog, tms, self.unsafe)
                 else:
-                    reader = CogReader(self, cog, tms, self.unsafe)
+                    reader = CogReader(self, config, cog, tms, self.unsafe)
             else:
                 reader = self.readers[cog].pop()
 

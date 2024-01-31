@@ -14,13 +14,13 @@ class CogReaderMosaic:
     avoid opening and closing the same file many times.
     """
     
-    def __init__(self, pool, cog: str, tms: TileMatrixSet, unsafe: bool = False):
+    def __init__(self, pool, config: Any, cog: str, tms: TileMatrixSet, unsafe: bool = False):
         self.pool = pool
+        self.config = config
         self.cog = cog
         self.tms = tms
         self.unsafe = unsafe
         self.last_used = time.time()
-        self._download_json(cog)
         
     def close(self):
         """Close the reader."""
@@ -60,7 +60,7 @@ class CogReaderMosaic:
         
         #logging.info(f"{z} {x} {y} {len(datasets)}\n {datasets} \n {tile_bounds}")
         
-        if not self._tile_intersects(tile_bounds, self.dataset["extent"]) or len(datasets) == 0:
+        if not self._tile_intersects(tile_bounds, self.config["extent"]) or len(datasets) == 0:
             return None
         
         kwargs["resampling_method"] = resampling_method
@@ -80,7 +80,7 @@ class CogReaderMosaic:
 
     def _get_intersecting_datasets(self, tile_bounds: BoundingBox) -> list:
         intersecting_datasets = []
-        for dataset in self.dataset["datasets"]:
+        for dataset in self.config["datasets"]:
             if self._tile_intersects(tile_bounds, dataset["extent"]):
                 intersecting_datasets.append(dataset["path"])
                     
@@ -104,27 +104,3 @@ class CogReaderMosaic:
             return False
         
         return True
-    
-    def _download_json(self, json_url):
-        # Download the JSON file
-        response = requests.get(json_url)
-
-        # Load the JSON content
-        datasets_json = response.json()
-        
-        # Extract base URL
-        base_url = self._get_base_url(json_url)
-        
-        # Extract datasets and their geometries
-
-        for dataset in datasets_json["datasets"]:
-            path = dataset['path']
-            absolute_path = urljoin(base_url, path)
-            dataset["path"] = absolute_path            
-        
-        #self.dataset = datasets_json["info"]
-        self.dataset = datasets_json
-        
-    def _get_base_url(self, url):
-        parsed_url = urlparse(url)
-        return f"{parsed_url.scheme}://{parsed_url.netloc}"

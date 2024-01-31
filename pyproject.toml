@@ -15,6 +15,7 @@ pymartini = "^0.4.4"
 quantized-mesh-encoder = "^0.4.3"
 tornado = "^6.4"
 triangle = "^20230923"
+lxml = "^5.1.0"
 
 [tool.poetry.group.dev.dependencies]
 matplotlib = "^3.8.2"

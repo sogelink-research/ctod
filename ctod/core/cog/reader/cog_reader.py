@@ -13,8 +13,9 @@ class CogReader:
     avoid opening and closing the same file many times.
     """
     
-    def __init__(self, pool, cog: str, tms: TileMatrixSet, unsafe: bool = False):
+    def __init__(self, pool, config: Any, cog: str, tms: TileMatrixSet, unsafe: bool = False):
         self.pool = pool
+        self.config = config
         self.cog = cog
         self.tms = tms
         self.unsafe = unsafe
@@ -77,7 +78,11 @@ class CogReader:
     def _set_rio_reader(self):
         """Get the reader for the COG."""
         
-        self.rio_reader = Reader(self.cog, tms=self.tms)
+        if self.config["type"] == "vrt":
+            logging.info(f"VRT: {self.config['vrt']}")
+            self.rio_reader = Reader(self.config["vrt"], tms=self.tms)
+        else:
+            self.rio_reader = Reader(self.cog, tms=self.tms)
 
         
     def _set_safe_level(self):
