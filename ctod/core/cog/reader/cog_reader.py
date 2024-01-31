@@ -79,7 +79,6 @@ class CogReader:
         """Get the reader for the COG."""
         
         if self.config["type"] == "vrt":
-            logging.info(f"VRT: {self.config['vrt']}")
             self.rio_reader = Reader(self.config["vrt"], tms=self.tms)
         else:
             self.rio_reader = Reader(self.cog, tms=self.tms)
