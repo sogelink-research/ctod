@@ -1,5 +1,5 @@
 import time
-import requests
+import logging
 import asyncio
 
 from morecantile import TileMatrixSet, Tile, BoundingBox
@@ -58,7 +58,14 @@ class CogReaderMosaic:
         tile_bounds = self.tms.xy_bounds(Tile(x=x, y=y, z=z))
         datasets = self._get_intersecting_datasets(tile_bounds)
         
-        #logging.info(f"{z} {x} {y} {len(datasets)}\n {datasets} \n {tile_bounds}")
+        if len(datasets) == 0:
+            return None
+        
+        if not self.unsafe and len(datasets) > 4:
+            logging.warning(f"Too many datasets intersecting with requested tile {z,x,y}, {len(datasets)}")
+            return None
+        
+        logging.info(f"{z} {x} {y} {len(datasets)}\n {datasets} \n {tile_bounds}")
         
         if not self._tile_intersects(tile_bounds, self.config["extent"]) or len(datasets) == 0:
             return None
