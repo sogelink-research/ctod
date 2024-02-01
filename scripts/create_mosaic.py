@@ -33,35 +33,50 @@ def get_extent(tiff_path):
     top = max(coord[1] for coord in coordinates)
     
     return (left, bottom, right, top)
-    
+
 def get_extent_ignore_nodata(tiff_path):
     """Extract extent from GeoTIFF file ignoring nodata values."""
     
     with rasterio.open(tiff_path) as src:
-        # Read raster data as numpy array
-        data_array = src.read(1)
-
+        # Initialize variables to hold the extent
+        left, bottom, right, top = float('inf'), float('inf'), float('-inf'), float('-inf')
+        
         # Get nodata value
         nodata = src.nodatavals[0]  # Assuming a single nodata value for simplicity
 
-        # Mask nodata values
-        data_array_masked = np.ma.masked_equal(data_array, nodata)
+        # Iterate over chunks
+        for _, window in src.block_windows():
+            # Read chunk of raster data as numpy array
+            data_array = src.read(1, window=window)
+            
+            # Mask nodata values
+            data_array_masked = np.ma.masked_equal(data_array, nodata)
 
-        # Find indices where data is not nodata
-        indices = np.where(~data_array_masked.mask)
+            # Find indices where data is not nodata
+            indices = np.where(~data_array_masked.mask)
 
-        # Calculate bounding box
-        xmin = np.min(indices[1])
-        xmax = np.max(indices[1])
-        ymin = np.min(indices[0])
-        ymax = np.max(indices[0])
+            # If there are no valid data points in the chunk, skip it
+            if len(indices) < 2 or len(indices[0]) == 0 or len(indices[1]) == 0:
+                continue
 
-        # Get affine transform to convert pixel coordinates to geographic coordinates
-        transform = src.transform
+            # Calculate bounding box
+            xmin = np.min(indices[1]) + window.col_off
+            xmax = np.max(indices[1]) + window.col_off
+            ymin = np.min(indices[0]) + window.row_off
+            ymax = np.max(indices[0]) + window.row_off
 
-        # Calculate bounding box in geographic coordinates
-        left, bottom = transform * (xmin, ymax)
-        right, top = transform * (xmax, ymin)
+            # Get affine transform to convert pixel coordinates to geographic coordinates
+            transform = src.transform
+
+            # Calculate bounding box in geographic coordinates
+            chunk_left, chunk_bottom = transform * (xmin, ymax)
+            chunk_right, chunk_top = transform * (xmax, ymin)
+
+            # Update overall extent
+            left = min(left, chunk_left)
+            bottom = min(bottom, chunk_bottom)
+            right = max(right, chunk_right)
+            top = max(top, chunk_top)
 
     return (left, bottom, right, top)
 
@@ -72,7 +87,7 @@ def calculate_extent(tiff_file, ignore_nodata):
         print(f"Calculating extent including nodata: {tiff_file}")
         return get_extent(tiff_file)
     else:
-        print(f"Calculating extent excluding nodata: {tiff_file}")
+        print(f"Calculating extent excluding nodata, this can take some time: {tiff_file}")
         return get_extent_ignore_nodata(tiff_file)
 
 def create_json(input_folder, output_json, ignore_nodata):
