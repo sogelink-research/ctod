@@ -5,9 +5,18 @@ import json
 import subprocess
 import rasterio
 import numpy as np
+from typing import Optional, Dict, Any
 
-def get_gdalinfo(tiff_file):
-    """Extract information using gdalinfo."""
+def get_gdalinfo(tiff_file: str) -> Optional[Dict[str, Any]]:
+    """Extract information using gdalinfo.
+    
+    Args:
+        tiff_file (str): The path to the GeoTIFF file.
+    
+    Returns:
+        dict or None: A dictionary containing the extracted information from gdalinfo.
+                      Returns None if there was an error extracting the information.
+    """
     
     try:
         info = subprocess.check_output(['gdalinfo', '-json', tiff_file], text=True)
@@ -18,7 +27,15 @@ def get_gdalinfo(tiff_file):
         return None
 
 def get_extent(tiff_path):
-    """Extract extent from GeoTIFF file."""
+    """Extract extent from GeoTIFF file.
+    
+    Args:
+        tiff_path (str): The path to the GeoTIFF file.
+    
+    Returns:
+        tuple: A tuple containing the left, bottom, right, and top coordinates of the extent.
+               Returns None if the extent information is not available.
+    """
     
     info_json = get_gdalinfo(tiff_path)
     if info_json is None:
@@ -53,7 +70,7 @@ def get_extent_ignore_nodata(tiff_path):
             data_array_masked = np.ma.masked_equal(data_array, nodata)
 
             # Find indices where data is not nodata
-            indices = np.where(~data_array_masked.mask)
+            indices = np.where(~np.atleast_1d(data_array_masked.mask))
 
             # If there are no valid data points in the chunk, skip it
             if len(indices) < 2 or len(indices[0]) == 0 or len(indices[1]) == 0:
