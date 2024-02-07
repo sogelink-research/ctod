@@ -47,18 +47,20 @@ def _generate_ctod_layer_json(tms: TileMatrixSet, file_path: str, max_zoom: int 
 
     Args:
         tms (TileMatrixSet): The TileMatrixSet to use
-        file_path (str): Path to the dataset
+        file_path (str): Path to the dataset or URL
         max_zoom (int, optional): Maximum zoom levels to generate info for. Defaults to 20.
 
     Returns:
         str: JSON string of the layer.json
     """
     
-    response = requests.get(file_path)
-    response.raise_for_status()
-    
-    # Load the JSON content
-    datasets_json = response.json()
+    if file_path.startswith("http://") or file_path.startswith("https://"):
+        response = requests.get(file_path)
+        response.raise_for_status()
+        datasets_json = response.json()
+    else:
+        with open(file_path) as file:
+            datasets_json = json.load(file)
     
     return _create_json(datasets_json["extent"], tms, max_zoom)
 
