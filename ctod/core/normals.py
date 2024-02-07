@@ -1,7 +1,5 @@
 import numpy as np
 
-from ctod.core.math import geodetic_surface_normal
-
 
 def calculate_normals(vertices: np.ndarray, triangles:  np.ndarray) -> np.ndarray:
     """Calculate vertex normals for a quantized mesh tile
@@ -50,7 +48,7 @@ def generate_geodetic_normals(vertices: np.ndarray, triangles: np.ndarray) -> np
     """Generate geocentric normals for a quantized mesh tile
 
     Args:
-        vertices (np.ndarray): list of vertices (lon lat)
+        vertices (np.ndarray): list of vertices in ecef
         triangles (np.ndarray): list of triangle indices
 
     Returns:
@@ -63,9 +61,9 @@ def generate_geodetic_normals(vertices: np.ndarray, triangles: np.ndarray) -> np
     vertex_normals = np.zeros(vertices.shape, dtype=np.float64)
  
     for i, values in enumerate(vertices):        
-        x, y, z = geodetic_surface_normal(values[0], values[1])
-        norm = np.linalg.norm([x, y, z])
-        vertex_normals[i] = norm
+        gradient = np.array([values[0], values[1], values[2]])
+        normal = gradient / np.linalg.norm(gradient)
+        vertex_normals[i] = normal
     
     return vertex_normals
 

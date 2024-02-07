@@ -1,21 +1,7 @@
-import math
 import numpy as np
 
 from quantized_mesh_encoder.occlusion import squared_norm
 
-def geodetic_surface_normal(lon: float, lat: float) -> tuple:
-    """Calculate the geodetic surface normal for a given lon/lat
-
-    Args:
-        lon (float): longitude
-        lat (float): latitude
-
-    Returns:
-        tuple: geodetic surface normal
-    """
-    
-    cos_latitude = math.cos(lat)
-    return cos_latitude * math.cos(lon), cos_latitude * math.sin(lon), math.sin(lat)
 
 def compute_magnitude(positions: np.ndarray, bounding_center: np.ndarray) -> np.ndarray:
     magnitude_squared = squared_norm(positions)
