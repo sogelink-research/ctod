@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import requests
+import logging
 
 from ctod.core.utils import get_dataset_type
 from urllib.parse import urlparse, urljoin
@@ -116,4 +117,7 @@ class DatasetConfigs:
         
     def _get_base_url(self, url):
         parsed_url = urlparse(url)
-        return f"{parsed_url.scheme}://{parsed_url.netloc}"
+        if parsed_url.path.endswith('/'):
+            return url
+        else:
+            return f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path.rsplit('/', 1)[0]}/"
