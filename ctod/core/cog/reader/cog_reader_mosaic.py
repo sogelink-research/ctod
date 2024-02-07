@@ -5,9 +5,9 @@ import asyncio
 from morecantile import TileMatrixSet, Tile, BoundingBox
 from rio_tiler.mosaic import mosaic_reader
 from rio_tiler.models import ImageData
-from typing import Any
-from urllib.parse import urlparse, urljoin
 from rio_tiler.errors import TileOutsideBounds
+from typing import Any
+
 
 class CogReaderMosaic:
     """A reader for a Cloud Optimized GeoTIFF. This class is used to pool readers to 
@@ -39,7 +39,7 @@ class CogReaderMosaic:
             
         return data
         
-    def download_tile(self, x: int, y: int, z: int, loop: asyncio.AbstractEventLoop, resampling_method="bilinear", **kwargs: Any) -> ImageData:
+    def download_tile(self, x: int, y: int, z: int, loop: asyncio.AbstractEventLoop, resampling_method: str = None, **kwargs: Any) -> ImageData:
         """Retrieve an image from a Cloud Optimized GeoTIFF based on a tile index.
 
         Args:
@@ -48,7 +48,7 @@ class CogReaderMosaic:
             y (int): y tile index.
             z (int): z tile index.
             loop (asyncio.AbstractEventLoop): The main loop
-            resampling_method (str, optional): RasterIO resampling algorithm. Defaults to "bilinear".
+            resampling_method (str, optional): RasterIO resampling algorithm. Defaults to None.
             kwargs (optional): Options to forward to the `rio_reader.tile` method.
 
         Returns:
@@ -61,16 +61,17 @@ class CogReaderMosaic:
         if len(datasets) == 0:
             return None
         
-        if not self.unsafe and len(datasets) > 4:
+        if not self.unsafe and len(datasets) > 10:
             logging.warning(f"Too many datasets intersecting with requested tile {z,x,y}, {len(datasets)}")
             return None
         
-        logging.info(f"{z} {x} {y} {len(datasets)}\n {datasets} \n {tile_bounds}")
+        #logging.info(f"{z} {x} {y} {len(datasets)}\n {datasets} \n {tile_bounds}")
         
         if not self._tile_intersects(tile_bounds, self.config["extent"]) or len(datasets) == 0:
             return None
         
-        kwargs["resampling_method"] = resampling_method
+        if resampling_method is not None:
+            kwargs["resampling_method"] = resampling_method
 
         try:
             img, _ = mosaic_reader(datasets, self.tiler, x, y, z, loop, **kwargs)

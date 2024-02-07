@@ -30,19 +30,19 @@ class BaseHandler(web.RequestHandler):
         """Get the maximum zoom level from the request
 
         Returns:
-            max_zoom (int): The maximum zoom level. Defaults to 21
+            max_zoom (int): The maximum zoom level. Defaults to 18
         """
         
-        return int(self.get_argument_ignore_case("maxZoom", default=21))
+        return int(self.get_argument_ignore_case("maxZoom", default=18))
 
     def get_resampling_method(self) -> str:
         """Get the resampling method from the request
 
         Returns:
-            resampling_method (str): COG resampling method. Defaults to bilinear
+            resampling_method (str): COG resampling method. Defaults to None
         """
         
-        return self.get_argument_ignore_case("resamplingMethod", default="bilinear")
+        return self.get_argument_ignore_case("resamplingMethod", default=None)
     
     def get_cog(self) -> str:
         """Get the COG path from the request

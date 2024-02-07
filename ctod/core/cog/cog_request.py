@@ -16,7 +16,7 @@ class CogRequest:
     COG data is retrieved and processed.
     """
     
-    def __init__(self, tms, cog, z, x, y, cog_processor: CogProcessor, cog_reader_pool: CogReaderPool, resampling_method = "bilinear", generate_normals = False):
+    def __init__(self, tms, cog, z, x, y, cog_processor: CogProcessor, cog_reader_pool: CogReaderPool, resampling_method = None, generate_normals = False):
         self.tms = tms
         self.cog = cog
         self.z = z

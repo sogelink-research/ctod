@@ -1,11 +1,11 @@
 var module, pane, terrainFolder, layerFolder, materialFolder;
 
 var minZoomValue = 1;
-var maxZoomValue = 21;
+var maxZoomValue = 18;
 var meshingMethodValue = "grid";
 var cogValue =
   "./ctod/files/test_cog.tif";
-var resamplingValue = "bilinear";
+var resamplingValue = "none";
 var skipCacheValue = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -151,6 +151,7 @@ function createTerrainPane() {
 
   const resamplingMethod = terrainFolder.addBinding(PARAMS, "resampling", {
     options: {
+      none: "none",
       nearest: "nearest",
       bilinear: "bilinear",
       cubic: "cubic",

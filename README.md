@@ -95,8 +95,8 @@ Returns a sample Cesium viewer, all values can be changed using the control pane
 #### Parameters
 
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
-- **maxZoom** : The max zoomlevel for the terrain. Default (20)
-- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'bilinear'
+- **maxZoom** : The max zoomlevel for the terrain. Default (18)
+- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
 - **cog** (required): Path or URL to COG file.
 - **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
 - **meshingMethod**: The Meshing method to use: 'grid', 'delatin'
@@ -104,7 +104,7 @@ Returns a sample Cesium viewer, all values can be changed using the control pane
 #### Example
 
 ```sh
-http://localhost:5000?minZoom=1&maxZoom=20&cog=./ctod/files/test_cog.tif
+http://localhost:5000?minZoom=1&maxZoom=18&cog=./ctod/files/test_cog.tif
 ```
 
 ### Endpoint: `/tiles/layer.json`
@@ -118,13 +118,13 @@ Dynamically generates a layer.json based on the COG.
 
 #### Parameters
 
-- **maxZoom** : The max zoomlevel for the terrain. Default (20)
+- **maxZoom** : The max zoomlevel for the terrain. Default (18)
 - **cog** (required): Path or URL to COG file.
 
 #### Example
 
 ```sh
-http://localhost:5000/tiles/layer.json?maxZoom=20&cog=./ctod/files/test_cog.tif
+http://localhost:5000/tiles/layer.json?maxZoom=18&cog=./ctod/files/test_cog.tif
 ```
 
 ### Endpoint: `/tiles/{z}/{x}/{y}.terrain`
@@ -139,7 +139,7 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 #### Parameters
 
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
-- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'bilinear'
+- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
 - **cog** (required): Path or URL to COG file.
 - **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
 - **meshingMethod**: The Meshing method to use: 'grid', 'delatin'
@@ -163,7 +163,7 @@ To use the CTOD terrain tiles in Cesium, create and set a `CesiumTerrainProvider
 
 ```js
 viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
-    url: `https://ctod-service/tiles?minZoom=1&maxZoom=21&cog=MyCogPath`,
+    url: `https://ctod-service/tiles?minZoom=1&maxZoom=18&cog=MyCogPath`,
     requestVertexNormals: true
 });
 ```

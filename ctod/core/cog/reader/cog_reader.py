@@ -29,7 +29,7 @@ class CogReader:
         
         self.rio_reader.close()
         
-    def download_tile(self, x: int, y: int, z: int, loop: AbstractEventLoop, resampling_method="bilinear", **kwargs: Any) -> ImageData:
+    def download_tile(self, x: int, y: int, z: int, loop: AbstractEventLoop, resampling_method: str = None, **kwargs: Any) -> ImageData:
         """Retrieve an image from a Cloud Optimized GeoTIFF based on a tile index.
 
         Args:
@@ -38,7 +38,7 @@ class CogReader:
             y (int): y tile index.
             z (int): z tile index.
             loop (asyncio.AbstractEventLoop): The main loop
-            resampling_method (str, optional): RasterIO resampling algorithm. Defaults to "bilinear".
+            resampling_method (str, optional): RasterIO resampling algorithm. Defaults to None.
             kwargs (optional): Options to forward to the `rio_reader.tile` method.
 
         Returns:
@@ -57,8 +57,11 @@ class CogReader:
             else:
                 logging.warning(f"Loading unsafe tile {self.cog} {z,x,y}, consider generating more overviews")
         
+        if resampling_method is not None:
+            kwargs["resampling_method"] = resampling_method
+            
         try:
-            image_data = self.rio_reader.tile(tile_z=z, tile_x=x, tile_y=y, resampling_method=resampling_method, align_bounds_with_dataset= True, **kwargs)
+            image_data = self.rio_reader.tile(tile_z=z, tile_x=x, tile_y=y, align_bounds_with_dataset= True, **kwargs)
             # For now set nodata to 0 if nodata is present in the metadata
             # handle this better later
             if self.nodata_value is not None:
