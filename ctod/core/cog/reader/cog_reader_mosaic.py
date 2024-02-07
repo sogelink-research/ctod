@@ -36,7 +36,7 @@ class CogReaderMosaic:
                 
         if not data:
             raise TileOutsideBounds
-            
+
         return data
         
     def download_tile(self, x: int, y: int, z: int, loop: asyncio.AbstractEventLoop, resampling_method: str = None, **kwargs: Any) -> ImageData:
@@ -60,14 +60,12 @@ class CogReaderMosaic:
         
         if len(datasets) == 0:
             return None
+
+        if not self._tile_intersects(tile_bounds, self.config["extent"]) or len(datasets) == 0:
+            return None
         
         if not self.unsafe and len(datasets) > 10:
             logging.warning(f"Too many datasets intersecting with requested tile {z,x,y}, {len(datasets)}")
-            return None
-        
-        #logging.info(f"{z} {x} {y} {len(datasets)}\n {datasets} \n {tile_bounds}")
-        
-        if not self._tile_intersects(tile_bounds, self.config["extent"]) or len(datasets) == 0:
             return None
         
         if resampling_method is not None:

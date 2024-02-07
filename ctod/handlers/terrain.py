@@ -68,7 +68,7 @@ class TerrainHandler(BaseHandler):
 
             # Try handling the request from the cache
             if not skip_cache:
-                if self._try_handle_cached_tile(cog, meshing_method, resampling_method, z, x, y):
+                if self._try_handle_cached_tile(cog, meshing_method, z, x, y):
                     return
 
             try:
@@ -79,7 +79,7 @@ class TerrainHandler(BaseHandler):
             
             # Always return an empty tile at 0 or requested zoom level is lower than min_zoom
             if z == 0 or z < min_zoom:
-                self._return_empty_terrain(tms, cog, meshing_method, resampling_method, z, x, y)
+                self._return_empty_terrain(tms, cog, meshing_method, z, x, y)
                 return
             
               
@@ -88,7 +88,7 @@ class TerrainHandler(BaseHandler):
             self.terrain_request = TerrainRequest(tms, cog, z, x, y, resampling_method, cog_processor, terrain_generator, self.cog_reader_pool, extensions["octvertexnormals"])
             quantized = await self.terrain_factory.handle_request(self.terrain_request)
             
-            self._try_save_tile_to_cache(cog, meshing_method, resampling_method, z, x, y, quantized)                
+            self._try_save_tile_to_cache(cog, meshing_method, z, x, y, quantized)                
             self._write_output(quantized)
             
         except HTTPError as e:
@@ -135,7 +135,7 @@ class TerrainHandler(BaseHandler):
         cog_processor = self.cog_processors.get(meshing_method, self.cog_processors["default"])
         return cog_processor(self)
         
-    def _return_empty_terrain(self, tms: TileMatrixSet, cog: str, meshing_method: str, resampling_method, z: int, x: int, y: int):
+    def _return_empty_terrain(self, tms: TileMatrixSet, cog: str, meshing_method: str, z: int, x: int, y: int):
         """Return an empty terrain tile
         generated based on the tile index including geodetic surface normals
 
@@ -147,10 +147,10 @@ class TerrainHandler(BaseHandler):
         """
 
         quantized_empty_tile = generate_empty_tile(tms, z, x, y)
-        self._try_save_tile_to_cache(cog, meshing_method, resampling_method, z, x, y, quantized_empty_tile) 
+        self._try_save_tile_to_cache(cog, meshing_method, z, x, y, quantized_empty_tile) 
         self._write_output(quantized_empty_tile)   
           
-    def _try_handle_cached_tile(self, cog: str, meshing_method: str, resampling_method: str, z: int, x: int, y: int) -> bool:
+    def _try_handle_cached_tile(self, cog: str, meshing_method: str, z: int, x: int, y: int) -> bool:
         """Try handling the request from the cache if the path is set
 
         Args:
@@ -166,14 +166,14 @@ class TerrainHandler(BaseHandler):
         """
         
         if self.tile_cache_path is not None:
-            cached_tile = get_tile_from_disk(self.tile_cache_path, cog, meshing_method, resampling_method, z, x, y)
+            cached_tile = get_tile_from_disk(self.tile_cache_path, cog, meshing_method, z, x, y)
             if cached_tile is not None:
                 self._write_output(cached_tile)
                 return True
             
         return False
     
-    def _try_save_tile_to_cache(self, cog: str, meshing_method: str, resampling_method: str, z: int, x: int, y: int, data: bytes):
+    def _try_save_tile_to_cache(self, cog: str, meshing_method: str, z: int, x: int, y: int, data: bytes):
         """Try saving the tile to the cache if the path is set
 
         Args:
@@ -187,7 +187,7 @@ class TerrainHandler(BaseHandler):
         """
         
         if self.tile_cache_path is not None:
-            save_tile_to_disk(self.tile_cache_path, cog, meshing_method, resampling_method, z, x, y, data)     
+            save_tile_to_disk(self.tile_cache_path, cog, meshing_method, z, x, y, data)     
     
     def _return_empty_terrain_tile_file(self):
         """Return an empty terrain tile from a file"""
