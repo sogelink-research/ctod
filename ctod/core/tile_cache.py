@@ -17,6 +17,7 @@ def get_tile_path(path: str, cog: str, meshing_method: str, resampling_method: s
     """
     
     cog = cog.encode("utf-8").hex()
+    resampling_method = resampling_method if resampling_method is not None else ""
     return os.path.join(path, cog, meshing_method, resampling_method, str(z), str(x))
 
 def get_tile_filepath(path: str, cog: str, meshing_method: str, resampling_method: str, z: int, x: int, y: int) -> str:
