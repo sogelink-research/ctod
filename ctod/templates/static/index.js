@@ -111,7 +111,7 @@ function configureViewer() {
 }
 
 function setTerrainProvider(minZoom, maxZoom, cog, resamplingMethod, skipCache, meshingMethod) {
-  const terrainProviderUrl = `${window.location.origin}/tiles?minZoom=${minZoom}&maxZoom=${maxZoom}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
+  let terrainProviderUrl = `${window.location.origin}/tiles?minZoom=${minZoom}&maxZoom=${maxZoom}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
 
   if (resamplingMethod !== "none") {
     terrainProviderUrl += `&resamplingMethod=${resamplingMethod}`;

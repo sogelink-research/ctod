@@ -64,13 +64,13 @@ class CogProcessorQuantizedMeshDelatin(CogProcessor):
             config (dict): The config
         """
         
-        self.default_error = int(request.get_argument_ignore_case("defaultGridSize", default=3))
-        self.zoom_errors = {"15": 5, "16": 4, "17": 3, "18": 2, "19": 0.7, "20": 0.3, "21": 0.15, "22": 0.1}
+        self.default_max_error = int(request.get_argument_ignore_case("defaultMaxError", default=3))
+        self.zoom_max_error = {"15": 5, "16": 4, "17": 3, "18": 2, "19": 0.7, "20": 0.3, "21": 0.15, "22": 0.1}
         
-        zoom_errors_string = request.get_argument_ignore_case("zoomErrors", default=None)
+        zoom_errors_string = request.get_argument_ignore_case("zoomMaxErrors", default=None)
         if zoom_errors_string:
             try:
-                self.zoom_errors_string = json.loads(zoom_errors_string)
+                self.zoom_max_error = json.loads(zoom_errors_string)
             except json.JSONDecodeError as e:
                 logging.warning("Error parsing zoomErrors:")
     
@@ -85,7 +85,7 @@ class CogProcessorQuantizedMeshDelatin(CogProcessor):
         """
         
         zoom = str(zoom)
-        if self.zoom_errors is not None and zoom in self.zoom_errors:
-            return self.zoom_errors[zoom]
+        if self.zoom_max_error is not None and zoom in self.zoom_max_error:
+            return self.zoom_max_error[zoom]
         else:
-            return self.default_error
+            return self.default_max_error

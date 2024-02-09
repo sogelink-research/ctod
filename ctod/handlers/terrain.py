@@ -1,6 +1,5 @@
 import logging
 
-from pymartini import Martini
 from asyncio import ensure_future
 from ctod.core import utils
 from ctod.core.cog.processor.cog_processor import CogProcessor
