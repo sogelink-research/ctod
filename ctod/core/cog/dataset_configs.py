@@ -109,16 +109,7 @@ class DatasetConfigs:
                     datasets_json = json.load(f)
             except Exception as e:
                 print(f"Error reading mosaic settings from {dataset_path}: {e}")
-                return {} 
-        
-        # Alter paths if dataset is a URL
-        if dataset_path.startswith(('http://', 'https://')):
-            base_url = self._get_base_url(dataset_path)
-            for dataset in datasets_json.get("datasets", []):
-                path = dataset.get('path')
-                if path and not path.startswith(('http://', 'https://')):
-                    absolute_path = urljoin(base_url, path)
-                    dataset["path"] = absolute_path
+                return {}
         
         datasets_json["type"] = "mosaic"
         return datasets_json

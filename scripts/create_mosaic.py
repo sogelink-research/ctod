@@ -107,7 +107,7 @@ def calculate_extent(tiff_file, ignore_nodata):
         print(f"Calculating extent excluding nodata, this can take some time: {tiff_file}")
         return get_extent_ignore_nodata(tiff_file)
 
-def create_json(input_folder, output_json, ignore_nodata):
+def create_json(input_folder, output_json, ignore_nodata, overwrite_path):
     """Create JSON file from GeoTIFF files."""
     
     min_lon, min_lat, max_lon, max_lat = 180, 90, -180, -90
@@ -126,9 +126,12 @@ def create_json(input_folder, output_json, ignore_nodata):
             max_lon = max(right, max_lon)
             max_lat = max(top, max_lat)
             
-            relative_path = os.path.relpath(tiff_file, input_folder)
+            ds_path = tiff_file
+            if overwrite_path:
+                ds_path = os.path.join(overwrite_path, os.path.basename(tiff_file))
+                
             datasets.append({
-                "path": relative_path,
+                "path": ds_path,
                 "extent": [left, bottom, right, top]
             })
     
@@ -147,10 +150,12 @@ if __name__ == "__main__":
                         help="Specify the input folder containing GeoTIFF files.")
     parser.add_argument("-o", "--output", metavar="output_file", default="dataset.ctod",
                         help="Specify the output JSON file name.")
+    parser.add_argument("-op", "--overwrite-path", metavar="overwrite_path", default=None,
+                        help="Overwrite the path to the dataset in the JSON file. Useful when the dataset is served from a different location.")
     parser.add_argument("--ignore-nodata", action="store_true",
                         help="Ignore nodata values when calculating extent, getting tighter bounds which can result in better performing CTOD.")
     args = parser.parse_args()
     
     output_json = { "path": args.output , "extent": None, "datasets": [] }
     
-    create_json(args.input, output_json, args.ignore_nodata)
+    create_json(args.input, output_json, args.ignore_nodata, args.overwrite_path)
