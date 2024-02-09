@@ -2,11 +2,12 @@ import copy
 import json
 import os
 import requests
-import logging
+import time
 
 from ctod.core.utils import get_dataset_type
 from urllib.parse import urlparse, urljoin
 from lxml import etree
+
 
 class DatasetConfigs:
     """
@@ -15,11 +16,18 @@ class DatasetConfigs:
     
     def __init__(self):
         self.cached_configs = {}
-        
+        self.last_accessed = {}
+
     def get_config(self, dataset_path: str):
-        if dataset_path not in self.cached_configs:
+        current_time = time.time()
+        
+        # If the config is not in cache or it's older than 5 minutes, create a new one
+        if dataset_path not in self.cached_configs or current_time - self.last_accessed[dataset_path] > 300:
             config = self._create_config(dataset_path)
-            self.cached_configs[dataset_path] = config           
+            self.cached_configs[dataset_path] = config
+        
+        # Update the last accessed time
+        self.last_accessed[dataset_path] = current_time
         
         return copy.deepcopy(self.cached_configs[dataset_path])
     
