@@ -4,12 +4,15 @@
     
 CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized GeoTIFF (COG). The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
 
-![CTOD](./img/ctod.jpg)
-
 ## TL;DR
 
 ```sh
-docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -e CTOD_LOGGING_LEVEL=info -e CTOD_TILE_CACHE_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+docker run -p 5000:5000 \
+-v ./ctod_cache:/cache \
+-e CTOD_PORT=5000 \
+-e CTOD_LOGGING_LEVEL=info \
+-e CTOD_TILE_CACHE_PATH=/cache \
+ghcr.io/sogelink-research/ctod:latest
 ```
 
 [Open the local running demo viewer](http://localhost:5000)
@@ -19,6 +22,7 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -e CTOD_LOGGING
 - Generate and fetch a layer.json derived from COG, accommodating all projections.
 - Retrieve .terrain tiles by tile index, currently supporting grid and martini based mesh.
 - Support for extension octvertexnormals
+- Support for .vrt and (custom) mosaic
 - Averaging of heights and normals on shared edge vertices among terrain tiles.
 - Empty tiles with geodetic surface normals.
 - In-memory cache for seamlessly stitching neighboring tiles and preventing redundant requests.
@@ -34,6 +38,11 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -e CTOD_LOGGING
 - [COG Optimization](https://github.com/sogelink-research/ctod/wiki/COG-Optimization) ToDo
 - [Seeding the cache](https://github.com/sogelink-research/ctod/wiki/Seeding-the-cache) ToDo
 - [VRT and Mosaic](https://github.com/sogelink-research/ctod/wiki/VRT-and-Mosaic) ToDo
+
+## Example result in Cesium
+
+![CTOD](./img/ctod.jpg)
+***Wireframe and mesh in Cesium using grid based meshing***
 
 ## ToDo
 
@@ -68,7 +77,10 @@ Run CTOD using docker or from source, see `Settings` for configuration options.
 Example running CTOD using the docker image with a mounted volume and caching enabled.
 
 ```sh
-docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_TILE_CACHE_PATH=/cache ghcr.io/sogelink-research/ctod:latest
+docker run -p 5000:5000 \
+-v ./ctod_cache:/cache \
+-e CTOD_TILE_CACHE_PATH=/cache \
+ghcr.io/sogelink-research/ctod:latest
 ```
 
 ### From source
