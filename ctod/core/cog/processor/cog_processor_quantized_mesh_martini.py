@@ -1,13 +1,15 @@
+import json
+import logging
 import numpy as np
 
 from ctod.core.cog.cog_request import CogRequest
 from ctod.core.cog.processor.cog_processor import CogProcessor
-
 from numpy import float32
 from pymartini import Martini
 from tornado import web
 from quantized_mesh_encoder.constants import WGS84
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
+
 
 class CogProcessorQuantizedMeshMartini(CogProcessor):
     """A CogProcessor for a Martini based mesh.
@@ -64,9 +66,16 @@ class CogProcessorQuantizedMeshMartini(CogProcessor):
             config (dict): The config
         """
         
-        self.default_max_error = 6
-        self.zoom_max_error = {"15": 8, "16": 7, "17": 6, "18": 7, "19": 6, "20": 0.5, "21": 0.3, "22": 0.1}
+        self.default_max_error = int(request.get_argument_ignore_case("defaultMaxError", default=4))
+        self.zoom_max_error = {"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}
         
+        zoom_errors_string = request.get_argument_ignore_case("zoomMaxErrors", default=None)
+        if zoom_errors_string:
+            try:
+                self.zoom_max_error = json.loads(zoom_errors_string)
+            except json.JSONDecodeError as e:
+                logging.warning("Error parsing zoomErrors:")
+
     def _get_max_error(self, zoom: int) -> int:
         """Get the grid size for a specific zoom level
 

@@ -149,6 +149,11 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 - **defaultGridSize**: The default grid size (amount of rows/cols) to use if there is no specific zoomGridSizes defined for a requested tile, Default (20)
 - **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default ({"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35})
 
+#### Parameters for meshing method: martini
+
+- **defaultMaxError**: The default max triangulation error in meters to use, Default (4)
+- **zoomMaxErrors**: Per level defined max error, when requested zoom for tile not specified use defaultMaxError. Default ({"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1})
+
 #### Example
 
 ```sh
