@@ -24,6 +24,9 @@ class CogProcessorQuantizedMeshDelatin(CogProcessor):
         self.ellipsoid: Ellipsoid = WGS84
         self._load_settings(request)
         
+    def get_name(self) -> str:
+        return "delatin"
+    
     def process(self, cog_request: CogRequest) -> tuple:
         """Process a CogRequest and return the vertices, triangles and normals created with PyDelatin.
 

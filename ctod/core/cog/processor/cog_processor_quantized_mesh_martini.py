@@ -25,6 +25,9 @@ class CogProcessorQuantizedMeshMartini(CogProcessor):
     def get_reader_kwargs(self):
         return { "buffer": 0.5 }
     
+    def get_name(self) -> str:
+        return "martini"
+    
     def process(self, cog_request: CogRequest) -> tuple:
         """Process a CogRequest and return the vertices, triangles and normals created with PyDelatin.
 

@@ -28,7 +28,10 @@ class CogProcessorQuantizedMeshGrid(CogProcessor):
         self.grid_wh = 255
         self.ellipsoid: Ellipsoid = WGS84
         self._load_settings(request)
-        
+    
+    def get_name(self) -> str:
+        return "grid"
+    
     def process(self, cog_request: CogRequest) -> tuple:
         """Process a CogRequest and return the vertices, triangles and normals.
 

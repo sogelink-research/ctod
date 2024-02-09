@@ -23,13 +23,13 @@ def get_dataset_type(file_path: str) -> str:
     else:
         return "cog"
     
-def generate_cog_cache_key(cog: str, z: int, x: int, y: int) -> str:
+def generate_cog_cache_key(cog: str, meshing_method: str, z: int, x: int, y: int) -> str:
     """
     Generate a key for the mesh cache.
     ToDo: cog path should be hashed or something
     """
     
-    return f"{cog}_{z}_{x}_{y}"
+    return f"{cog}_{meshing_method}_{z}_{x}_{y}"
 
 def tile_index_from_cesium(tms: TileMatrixSet, x: int, y: int, z: int) -> tuple[int, int, int]:
     """

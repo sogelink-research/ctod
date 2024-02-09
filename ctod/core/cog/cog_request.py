@@ -26,7 +26,7 @@ class CogRequest:
         self.cog_reader_pool = cog_reader_pool
         self.resampling_method = resampling_method
         self.generate_normals = generate_normals
-        self.key = generate_cog_cache_key(cog, z, x, y)
+        self.key = generate_cog_cache_key(cog, cog_processor.get_name(), z, x, y)
         self.tile_bounds = utils.get_tile_bounds(self.tms, self.x, self.y, self.z)
         self.is_out_of_bounds = False
         self.data = None

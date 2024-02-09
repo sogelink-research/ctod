@@ -1,8 +1,7 @@
 import asyncio
-import copy
 import logging
-from ctod.core.cog.dataset_configs import DatasetConfigs
 
+from ctod.core.cog.dataset_configs import DatasetConfigs
 from ctod.core.utils import get_dataset_type
 from collections import defaultdict
 from ctod.core.cog.reader.cog_reader import CogReader

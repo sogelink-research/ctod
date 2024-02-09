@@ -26,7 +26,7 @@ class TerrainRequest:
         self.cog_reader_pool = cog_reader_pool
         self.wanted_files = []
         self._generate_wanted_files()
-        self.key = generate_cog_cache_key(self.cog, self.z, self.x, self.y)
+        self.key = generate_cog_cache_key(self.cog, cog_processor.get_name(), self.z, self.x, self.y)
         self.future = asyncio.Future()
         self.result_set = False
         self._cancel_callbacks = []   
@@ -52,7 +52,7 @@ class TerrainRequest:
         """
         
         x, y = move_in_direction(self.x, self.y, direction)
-        key = generate_cog_cache_key(self.cog, self.z, x, y)
+        key = generate_cog_cache_key(self.cog, self.cog_processor.get_name(), self.z, x, y)
         return self.get_file(key)
         
     def get_file(self, key: str) -> CogRequest:
