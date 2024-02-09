@@ -23,6 +23,7 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -e CTOD_LOGGING
 - CogProcessor and TerrainGenerator for diverse terrain serving implementations (grid, martini, custom).
 - Basic tile caching implementation
 - Basic Cesium viewer included for debugging and result visualization.
+- Scripts to partly seed cache and generate mosaic dataset.
 
 ## Wiki
 
@@ -36,10 +37,9 @@ docker run -p 5000:5000 -v ./ctod_cache:/cache -e CTOD_PORT=5000 -e CTOD_LOGGING
 
 ### V1.0 (In progress)
 
-- Fill the pages on the wiki
 - Refactoring
 - Cleanup viewer code
-- Wiki Optimizing COG/Performance
+- Update Wiki
 
 ### Future work (V1.1)
 
@@ -55,7 +55,7 @@ The following options can be set by supplying args to app.py or setting the envi
 |--tile-cache-path|CTOD_TILE_CACHE_PATH|Cache dir, not set = cache disabled|None|
 |--logging-level|CTOD_LOGGING_LEVEL|debug, info, warning, error, critical|info|
 |--port|CTOD_PORT|Port to run the service on|5000|
-|--unsafe|CTOD_UNSAFE|Load unsafe tiles anyway (not enough COG overviews), can result in huge and or stuck requests||
+|--unsafe|CTOD_UNSAFE|Load unsafe tiles (not enough COG overviews or too many datasets in 1 tile), can result in huge and or stuck requests||
 
 ## Run CTOD
 
@@ -105,7 +105,7 @@ Returns a sample Cesium viewer, all values can be changed using the control pane
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
 - **cog** (required): Path or URL to COG file.
 - **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
-- **meshingMethod**: The Meshing method to use: 'grid', 'delatin'
+- **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
 
 #### Example
 
@@ -148,17 +148,17 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
 - **cog** (required): Path or URL to COG file.
 - **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
-- **meshingMethod**: The Meshing method to use: 'grid', 'delatin'
+- **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
 
 #### Parameters for meshing method: grid
 
 - **defaultGridSize**: The default grid size (amount of rows/cols) to use if there is no specific zoomGridSizes defined for a requested tile, Default (20)
-- **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default ({"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35})
+- **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default (`{"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35}`)
 
 #### Parameters for meshing method: martini
 
 - **defaultMaxError**: The default max triangulation error in meters to use, Default (4)
-- **zoomMaxErrors**: Per level defined max error, when requested zoom for tile not specified use defaultMaxError. Default ({"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1})
+- **zoomMaxErrors**: Per level defined max error, when requested zoom for tile not specified use defaultMaxError. Default (`{"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}`)
 
 #### Example
 
