@@ -1,7 +1,7 @@
-<div style="width: 100%; text-align: center; background-color: #202020; margin-bottom: 20px">
-    <img src="./img/ctod_logo.jpg" style="max-width: 100%;" alt="CTOD">
-</div>
-
+<p align="center" style="background-color: #202020;">
+  <img src="./img/ctod_logo.jpg" alt="CTOD">
+</p>
+    
 CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized GeoTIFF (COG). The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
 
 ![CTOD](./img/ctod.jpg)
