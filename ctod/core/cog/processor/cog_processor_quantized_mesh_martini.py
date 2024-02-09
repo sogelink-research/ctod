@@ -1,14 +1,13 @@
+import numpy as np
+
 from ctod.core.cog.cog_request import CogRequest
 from ctod.core.cog.processor.cog_processor import CogProcessor
-from ctod.core.normals import calculate_normals
 
 from numpy import float32
 from pymartini import Martini
 from tornado import web
 from quantized_mesh_encoder.constants import WGS84
-from quantized_mesh_encoder.ecef import to_ecef
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
-from pymartini import rescale_positions
 
 class CogProcessorQuantizedMeshMartini(CogProcessor):
     """A CogProcessor for a Martini based mesh.
@@ -34,8 +33,10 @@ class CogProcessorQuantizedMeshMartini(CogProcessor):
             tuple: vertices, triangles and normals
         """
         
+        tile_size = 256
+        
         # According to PyMartini you should reuse the martini object when
-        # creating many tiles, however this goes wrong when threading
+        # Creating many tiles, however this goes wrong when threading
         # Creating Martini takes aroung 10-100ms
         martini = Martini(cog_request.data.data[0].shape[0]) 
         
@@ -45,11 +46,16 @@ class CogProcessorQuantizedMeshMartini(CogProcessor):
         # Get mesh looks to be fast
         vertices, triangles = tin.get_mesh(max_error=self._get_max_error(cog_request.z))
         
-        rescaled = rescale_positions(vertices, cog_request.data.data[0], bounds=cog_request.data.bounds, flip_y=True)
-        cartesian = to_ecef(rescaled, ellipsoid=self.ellipsoid)
-        normals = calculate_normals(cartesian, triangles) if cog_request.generate_normals else None
+        # Reshape and flip y
+        vertices = vertices.reshape(-1, 2)
+        vertices[:, 1] = tile_size - vertices[:, 1]
         
-        return (vertices, triangles, normals)
+        # Add height data
+        height_data_indices = np.floor(vertices).astype(int)   
+        height_data = cog_request.data.data[0][tile_size - height_data_indices[:, 1], height_data_indices[:, 0]]
+        new_vertices = np.column_stack((vertices, height_data))
+        
+        return (new_vertices, triangles, None)
     
     def _load_settings(self, request: web.RequestHandler):
         """Parse the config
@@ -58,8 +64,8 @@ class CogProcessorQuantizedMeshMartini(CogProcessor):
             config (dict): The config
         """
         
-        self.default_max_error = 5
-        self.zoom_max_error = {"15": 5, "16": 3, "17": 2, "18": 1, "19": 0.5, "20": 0.3, "21": 0.2, "22": 0.1}
+        self.default_max_error = 6
+        self.zoom_max_error = {"15": 8, "16": 7, "17": 6, "18": 7, "19": 6, "20": 0.5, "21": 0.3, "22": 0.1}
         
     def _get_max_error(self, zoom: int) -> int:
         """Get the grid size for a specific zoom level
