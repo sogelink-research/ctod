@@ -16,7 +16,7 @@ class TerrainFactory:
     TerrainFactory checks if TerrainRequest are ready for precessing and if so, processes them.
     """
     
-    def __init__(self, cache_expiry_seconds=10):
+    def __init__(self, cache_expiry_seconds=60):
         self.cache_expiry_seconds = cache_expiry_seconds
         self.cache = {}
         self.open_requests = set()
