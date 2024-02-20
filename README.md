@@ -4,6 +4,8 @@
     
 CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized GeoTIFF (COG). The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
 
+> Don't care about on-demand? You can misuse CTOD to generate a cache for you aswell.
+
 ## TL;DR
 
 ```sh
@@ -54,7 +56,11 @@ ghcr.io/sogelink-research/ctod:latest
 
 ### Future work (V1.1)
 
+- PMTiles for cached tiles?
 - Fill Nodata values on the fly
+- Profiling to see where can gain some performance
+- Support multiple workers
+- Prevent others using a deployed service by using a dataset config
 - Extension support: Metadata, Watermask
 
 ## Settings
@@ -88,11 +94,10 @@ ghcr.io/sogelink-research/ctod:latest
 Create a virtual environment, install and run CTOD.
 
 ```sh
-python -m venv venv
-source venv/bin/activate
-pip install poetry
+poetry env use python3.10
 poetry install
-python app.py
+poetry shell
+poetry run python app.py
 ```
 
 To enable caching, supply --tile-cache-path path to app.py.
@@ -125,6 +130,21 @@ Returns a sample Cesium viewer, all values can be changed using the control pane
 
 ```sh
 http://localhost:5000?minZoom=1&maxZoom=18&cog=./ctod/files/test_cog.tif
+```
+
+### Endpoint: `/docs`
+
+OpenAPI docs
+
+#### Request
+
+- **Method:** GET
+- **URL:** `http://localhost:5000/docs`
+
+#### Example
+
+```sh
+http://localhost:5000/docs
 ```
 
 ### Endpoint: `/tiles/layer.json`
@@ -161,7 +181,7 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
 - **cog** (required): Path or URL to COG file.
-- **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
+- **skipCache** : Set to true to prevent loading tiles from the cache. Default (False)
 - **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
 
 #### Parameters for meshing method: grid
