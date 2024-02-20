@@ -27,10 +27,9 @@ class TerrainRequest:
         self.wanted_files = []
         self._generate_wanted_files()
         self.key = generate_cog_cache_key(self.cog, cog_processor.get_name(), self.z, self.x, self.y)
+        self.wanted_file_keys = self.get_wanted_file_keys()
         self.future = asyncio.Future()
-        self.result_set = False
-        self._cancel_callbacks = []   
-        self.cancelled = False 
+        self.result_set = False        
 
     def get_main_file(self) -> CogRequest:
         """Get the main CogRequest for this TerrainRequest
@@ -71,6 +70,15 @@ class TerrainRequest:
             
         return None
     
+    def get_wanted_file_keys(self) -> list:
+        """Get the keys of the wanted files
+
+        Returns:
+            list: The keys of the wanted files
+        """
+        
+        return [wanted_file.key for wanted_file in self.wanted_files]
+    
     def has_all_data(self) -> bool:
         """Check if all data is available to process the terrain tile
 
@@ -79,12 +87,12 @@ class TerrainRequest:
         """
 
         for wanted_file in self.wanted_files:
-            if wanted_file.data is None and wanted_file.is_out_of_bounds == False:
+            if (wanted_file.data is None or wanted_file.processed_data is None) and wanted_file.is_out_of_bounds == False:
                 return False
             
         return True
     
-    def process(self):
+    async def process(self):
         """Start processing the terrain tile"""
         
         result = self.terrain_generator.generate(self)
@@ -109,21 +117,7 @@ class TerrainRequest:
         
         self.future.set_exception(exception)
         self.result_set = True
-    
-    async def cancel(self):
-        """Cancel the request"""
-        
-        self.cancelled = True
-        
-        for callback in self._cancel_callbacks:
-            await callback(self)
 
-    def register_cancel_callback(self, callback):
-        self._cancel_callbacks.append(callback)
-
-    def unregister_cancel_callback(self, callback):
-        self._cancel_callbacks.remove(callback)
-        
     async def wait(self) -> asyncio.Future:
         """Wait for the result of the TerrainRequest
 
@@ -143,4 +137,3 @@ class TerrainRequest:
         neighbour_tiles = get_neighbor_tiles(self.tms, self.x, self.y, self.z)        
         for tile in neighbour_tiles:
             self.wanted_files.append(CogRequest(self.tms, self.cog, tile.z, tile.x, tile.y, self.cog_processor, self.cog_reader_pool, self.resampling_method, self.generate_normals)) 
-    

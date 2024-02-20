@@ -13,16 +13,13 @@ rio-tiler = "^6.4.0"
 pydelatin = "^0.2.7"
 pymartini = "^0.4.4"
 quantized-mesh-encoder = "^0.4.3"
-tornado = "^6.4"
+fastapi = "^0.109.2"
 triangle = "^20230923"
 lxml = "^5.1.0"
-
-[tool.poetry.group.dev.dependencies]
-matplotlib = "^3.8.2"
-meshio = "^5.3.4"
-plotly = "^5.18.0"
-scipy = "^1.11.4"
-shapely = "^2.0.2"
+uvicorn = {extras = ["standard"], version = "^0.27.1"}
+requests = "^2.31.0"
+psutil = "^5.9.8"
+pyee = "^11.1.0"
 
 [build-system]
 requires = ["poetry-core"]

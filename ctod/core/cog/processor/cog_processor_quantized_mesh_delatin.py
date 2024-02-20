@@ -7,7 +7,6 @@ from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.normals import calculate_normals
 from ctod.core.utils import rescale_positions
 from pydelatin import Delatin
-from tornado import web
 from quantized_mesh_encoder.constants import WGS84
 from quantized_mesh_encoder.ecef import to_ecef
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
@@ -19,10 +18,10 @@ class CogProcessorQuantizedMeshDelatin(CogProcessor):
     - Calculate normals
     """
     
-    def __init__(self, request: web.RequestHandler):
+    def __init__(self, settings: dict):
         super().__init__()
         self.ellipsoid: Ellipsoid = WGS84
-        self._load_settings(request)
+        self._load_settings(settings)
         
     def get_name(self) -> str:
         return "delatin"
@@ -57,17 +56,17 @@ class CogProcessorQuantizedMeshDelatin(CogProcessor):
         
         return (vertices, tin.triangles, normals)
     
-    def _load_settings(self, request: web.RequestHandler):
+    def _load_settings(self, settings: dict):
         """Parse the config
 
         Args:
             config (dict): The config
         """
         
-        self.default_max_error = int(request.get_argument_ignore_case("defaultMaxError", default=3))
+        self.default_max_error = settings["defaultMaxError"]
         self.zoom_max_error = {"15": 5, "16": 4, "17": 3, "18": 2, "19": 0.7, "20": 0.3, "21": 0.15, "22": 0.1}
         
-        zoom_errors_string = request.get_argument_ignore_case("zoomMaxErrors", default=None)
+        zoom_errors_string = settings["zoomMaxErrors"]
         if zoom_errors_string:
             try:
                 self.zoom_max_error = json.loads(zoom_errors_string)

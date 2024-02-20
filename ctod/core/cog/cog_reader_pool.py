@@ -14,7 +14,7 @@ class CogReaderPool:
     ToDo: Cleanup readers after being unused for a while, doesn't seem to impact memory usage much.
     """
     
-    def __init__(self, unsafe: bool = False, max_readers: int = 250):
+    def __init__(self, unsafe: bool = False, max_readers: int = 0):
         """Create a new pool of readers.
 
         Args:
@@ -63,6 +63,7 @@ class CogReaderPool:
         
         if(len(self.readers[reader.cog]) >= self.max_readers):
             reader.close()
+            del reader
             return
         
         self.readers[reader.cog].append(reader)

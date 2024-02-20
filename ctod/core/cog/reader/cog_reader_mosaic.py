@@ -25,7 +25,8 @@ class CogReaderMosaic:
     def close(self):
         """Close the reader."""
         
-        self.rio_reader.close()
+        # CogReaderMosaic doesn't have a reader itself, therefore it doesn't need to close
+        pass
         
     def tiler(self, src_path: str, *args, **kwargs) -> ImageData:
         future = asyncio.run_coroutine_threadsafe(self.pool.get_reader(src_path, self.tms), args[3])
@@ -75,7 +76,6 @@ class CogReaderMosaic:
             img, _ = mosaic_reader(datasets, self.tiler, x, y, z, loop, **kwargs)
             return img
         except Exception as e:
-            #logging.warning(f"Failed to load tile {self.cog} {z,x,y}, {e}")
             return None   
             
     def return_reader(self):

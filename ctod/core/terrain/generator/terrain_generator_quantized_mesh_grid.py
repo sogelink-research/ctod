@@ -29,8 +29,7 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         
         main_cog = terrain_request.get_main_file()
         
-        if main_cog.processed_data is None:
-            logging.debug("main_cog.processed_data is None")
+        if main_cog.processed_data is None or main_cog.is_out_of_bounds:
             quantized_empty_tile = generate_empty_tile(main_cog.tms, main_cog.z, main_cog.x, main_cog.y)
             return quantized_empty_tile
         
@@ -42,5 +41,5 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
         
         average_height_and_normals_to_neighbours(vertices, normals, neighbour_vertices, neighbour_normals)
         quantized = quantize(rescaled, triangles, normals)
-        
+
         return quantized
