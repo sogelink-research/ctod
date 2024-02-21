@@ -15,14 +15,17 @@ from contextlib import asynccontextmanager
 
 
 globals = {}
+current_dir = os.path.dirname(os.path.abspath(__file__))
+path_static_files = os.path.join(current_dir, "../templates/static")
+path_template_files = os.path.join(current_dir, "../templates")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     args = parse_args()
-    unsafe = get_value(args.unsafe, os.environ.get("CTOD_UNSAFE", False), False)
+    unsafe = get_value(args, "unsafe", os.environ.get("CTOD_UNSAFE", False), False)
     tile_cache_path = get_value(
-        args.tile_cache_path, os.environ.get("CTOD_TILE_CACHE_PATH", None), None
+        args, "tile_cache_path", os.environ.get("CTOD_TILE_CACHE_PATH", None), None
     )
 
     globals["terrain_factory"] = TerrainFactory()
@@ -44,7 +47,7 @@ app = FastAPI(
 )
 
 # Mount the static files directory to serve the Cesium viewer
-app.mount("/static", StaticFiles(directory="./ctod/templates/static"), name="static")
+app.mount("/static", StaticFiles(directory=path_static_files), name="static")
 
 
 @app.get(
@@ -53,7 +56,7 @@ app.mount("/static", StaticFiles(directory="./ctod/templates/static"), name="sta
     description="Basic Cesium viewer with a terrain layer to test and debug",
 )
 async def index():
-    return FileResponse("./ctod/templates/index.html")
+    return FileResponse(f"{path_template_files}/index.html")
 
 
 @app.get(

@@ -48,12 +48,12 @@ def log_ctod_start(port: int, tile_cache_path: str):
 
 async def main():
     args = parse_args()
-    port = get_value(args.port, int(os.environ.get("CTOD_PORT", 5000)), 5000)
+    port = get_value(args, "port", int(os.environ.get("CTOD_PORT", 5000)), 5000)
     tile_cache_path = get_value(
-        args.tile_cache_path, os.environ.get("CTOD_TILE_CACHE_PATH", None), None
+        args, "tile_cache_path", os.environ.get("CTOD_TILE_CACHE_PATH", None), None
     )
     logging_level = get_value(
-        args.logging_level, os.environ.get("CTOD_LOGGING_LEVEL", "info"), "info"
+        args, "logging_level", os.environ.get("CTOD_LOGGING_LEVEL", "info"), "info"
     )
 
     patch_occlusion()
