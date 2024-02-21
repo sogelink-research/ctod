@@ -1,16 +1,20 @@
 import argparse
+import asyncio
 import os
-import json
 import logging
 import requests
 import threading
+import sys
 
 from concurrent.futures import Future
 from ctod.core import utils
 from ctod.core.layer import generate_layer_json
 from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
-from ctod.server.server import make_server
+
+# from ctod.server.server import app
+
 from morecantile import TileMatrixSet
+from uvicorn import Config, Server
 
 
 def setup_logging(log_level=logging.INFO):
@@ -23,7 +27,7 @@ def setup_logging(log_level=logging.INFO):
 
 def get_layer_json(tms: TileMatrixSet, filepath: str, max_zoom: int = 22) -> dict:
     json_string = generate_layer_json(tms, filepath, max_zoom)
-    return json.loads(json_string)
+    return json_string
 
 
 def create_cache_folder(filepath: str):
@@ -38,6 +42,7 @@ def get_tile_range(layer_json: dict, zoom: int):
 
 
 def seed_cache(
+    server: Server,
     tms: TileMatrixSet,
     input_filepath: str,
     output_filepath: str,
@@ -51,7 +56,10 @@ def seed_cache(
     layer_json = get_layer_json(tms, input_filepath)
 
     for zoom in zoom_levels:
+        if server.should_exit:  # Check if the server has been stopped
+            break
         generate_level(
+            server,
             tms,
             input_filepath,
             output_filepath,
@@ -67,6 +75,7 @@ def seed_cache(
 
 
 def generate_level(
+    server: Server,
     tms: TileMatrixSet,
     input_filepath: str,
     output_filepath: str,
@@ -87,7 +96,11 @@ def generate_level(
     )
 
     for x in x_range:
+        if server.should_exit:  # Check if the server has been stopped
+            break
         for y in y_range:
+            if server.should_exit:  # Check if the server has been stopped
+                break
             generate_tile(
                 input_filepath,
                 output_filepath,
@@ -136,6 +149,65 @@ def generate_tile(
         logging.error(
             f"Failed to generate tile {x} {y} {z}. Status code: {response.status_code}"
         )
+
+async def clear_tasks():
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    [task.cancel() for task in tasks]
+    await asyncio.gather(*tasks, return_exceptions=True)
+    
+async def main():
+    try:
+        # Clear all arguments except the script name
+        sys.argv = []
+
+        os.environ["CTOD_UNSAFE"] = "false"
+        config = Config(
+            "ctod.server.server:app",
+            host="0.0.0.0",
+            port=5580,
+            log_config=None,
+            reload=False,
+            workers=1,
+        )
+        server = Server(config)
+
+        loop = asyncio.get_event_loop()
+        server_task = loop.create_task(server.serve())
+        await asyncio.sleep(2)
+
+        done_future = Future()
+        threading.Thread(
+            target=seed_cache,
+            args=(
+                server,
+                tms,
+                args.input,
+                args.output,
+                args.meshing_method,
+                args.params,
+                zoom_levels,
+                args.overwrite,
+                done_future,
+            ),
+        ).start()
+
+        # Wait for the done_future to be set
+        while not done_future.done():
+            await asyncio.sleep(0.1)  # Sleep for a short period to prevent busy waiting
+
+        # Once the done_future is set, stop the server
+        server.should_exit = True
+        await server_task  # Wait for the server task to finish
+
+        await clear_tasks()
+        
+    except KeyboardInterrupt:
+        # On KeyboardInterrupt, stop the server and cancel all running tasks
+        server.should_exit = True
+        await clear_tasks()
+        
+    finally:
+        loop.stop()
 
 
 if __name__ == "__main__":
@@ -189,27 +261,4 @@ if __name__ == "__main__":
 
     logging.info(f"Creating cache for {args.input} at zoom levels {zoom_levels}")
 
-    app = make_server(None, True)
-    app.listen(5580)
-
-    ioloop = tornado.ioloop.IOLoop.current()
-    done_future = Future()
-    threading.Thread(
-        target=seed_cache,
-        args=(
-            tms,
-            args.input,
-            args.output,
-            args.meshing_method,
-            args.params,
-            zoom_levels,
-            args.overwrite,
-            done_future,
-        ),
-    ).start()
-    done_future.add_done_callback(lambda future: ioloop.stop())
-
-    try:
-        ioloop.start()
-    except KeyboardInterrupt:
-        ioloop.stop()
+    asyncio.run(main())
