@@ -32,7 +32,7 @@ def parse_args():
 
 def get_value(args, option, environment, default):
     return (
-        args[option]
-        if args is not None and args[option] is not None
+        getattr(args, option)
+        if args is not None and hasattr(args, option) and getattr(args, option) is not None
         else environment if environment is not None else default
     )
