@@ -27,7 +27,7 @@ ghcr.io/sogelink-research/ctod:latest
 - Support for .vrt and (custom) mosaic
 - Averaging of heights and normals on shared edge vertices among terrain tiles.
 - Empty tiles with geodetic surface normals.
-- In-memory cache for seamlessly stitching neighboring tiles and preventing redundant requests.
+- Caching for seamlessly stitching neighboring tiles and preventing redundant requests.
 - CogProcessor and TerrainGenerator for diverse terrain serving implementations (grid, martini, custom).
 - Basic tile caching implementation
 - Basic Cesium viewer included for debugging and result visualization.
@@ -58,6 +58,7 @@ ghcr.io/sogelink-research/ctod:latest
 
 - PMTiles for cached tiles?
 - Fill Nodata values on the fly
+- Mosaic dataset priority
 - Profiling to see where can gain some performance
 - Support multiple workers
 - Prevent others using a deployed service by using a dataset config
