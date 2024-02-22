@@ -1,18 +1,16 @@
 import argparse
 import asyncio
 import os
-import logging
-import requests
-import threading
+import aiohttp
 import sys
+import time
+import math
+import logging
 
 from concurrent.futures import Future
 from ctod.core import utils
 from ctod.core.layer import generate_layer_json
 from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
-
-# from ctod.server.server import app
-
 from morecantile import TileMatrixSet
 from uvicorn import Config, Server
 
@@ -41,7 +39,7 @@ def get_tile_range(layer_json: dict, zoom: int):
     return (info["startX"], info["endX"], info["startY"], info["endY"])
 
 
-def seed_cache(
+async def seed_cache(
     server: Server,
     tms: TileMatrixSet,
     input_filepath: str,
@@ -51,6 +49,7 @@ def seed_cache(
     zoom_levels: list,
     overwrite: bool,
     done_future: Future,
+    port: int
 ):
     create_cache_folder(output_filepath)
     layer_json = get_layer_json(tms, input_filepath)
@@ -58,7 +57,7 @@ def seed_cache(
     for zoom in zoom_levels:
         if server.should_exit:  # Check if the server has been stopped
             break
-        generate_level(
+        await generate_level(
             server,
             tms,
             input_filepath,
@@ -68,13 +67,14 @@ def seed_cache(
             meshing_method,
             params,
             overwrite,
+            port,
         )
 
     logging.info(f"Finished seeding cache, stopping...")
     done_future.set_result(None)
 
 
-def generate_level(
+async def generate_level(
     server: Server,
     tms: TileMatrixSet,
     input_filepath: str,
@@ -84,6 +84,7 @@ def generate_level(
     meshing_method: str,
     params: str,
     overwrite: bool,
+    port: int
 ):
     tile_range = get_tile_range(layer_json, zoom)
     tms_y_max = tms.minmax(zoom)["y"]["max"]
@@ -95,26 +96,61 @@ def generate_level(
         f"Generating cache for zoom level {zoom} with {len(x_range) * len(y_range)} tile(s)"
     )
 
+    start_time = time.time()
+    generated_tiles = 0
+
+    tasks = []
     for x in x_range:
         if server.should_exit:  # Check if the server has been stopped
             break
         for y in y_range:
             if server.should_exit:  # Check if the server has been stopped
                 break
-            generate_tile(
-                input_filepath,
-                output_filepath,
-                tms_y_max,
-                x,
-                y,
-                zoom,
-                meshing_method,
-                params,
-                overwrite,
+            task = asyncio.create_task(
+                generate_tile(
+                    input_filepath,
+                    output_filepath,
+                    tms_y_max,
+                    x,
+                    y,
+                    zoom,
+                    meshing_method,
+                    params,
+                    overwrite,
+                    port,
+                )
             )
+            tasks.append(task)
+            if len(tasks) >= 20:
+                await asyncio.gather(*tasks)
+                tasks = []
+
+            generated_tiles += 1
+            if generated_tiles % 100 == 0:
+                elapsed_time = time.time() - start_time
+                estimated_time = (elapsed_time / generated_tiles) * (len(x_range) * len(y_range) - generated_tiles)
+                estimated_time_minutes = math.floor(estimated_time / 60)
+                estimated_time_seconds = math.ceil(estimated_time % 60)
+                logging.info(
+                    f"Done {generated_tiles}/{len(x_range) * len(y_range)} for zoom {zoom}. Estimated time remaining: {estimated_time_minutes:02d}:{estimated_time_seconds:02d}"
+                )
+
+            if generated_tiles == len(x_range) * len(y_range):
+                elapsed_time = time.time() - start_time
+                elapsed_time_minutes = math.floor(elapsed_time / 60)
+                elapsed_time_seconds = math.ceil(elapsed_time % 60)
+                logging.info(
+                    f"Generation completed for zoom level {zoom}. Total elapsed time: {elapsed_time_minutes:02d}:{elapsed_time_seconds:02d}"
+                )
+
+    if tasks:
+        await asyncio.gather(*tasks)
+
+    logging.info(f"Finished generating cache for zoom level {zoom}")
 
 
-def generate_tile(
+
+async def generate_tile(
     input_filepath: str,
     output_filepath: str,
     tms_y_max: int,
@@ -124,47 +160,53 @@ def generate_tile(
     meshing_method: str,
     params: str,
     overwrite: bool,
+    port: int,
 ):
+    
     # If overwrite is false, skip generating and caching the tile
     if not overwrite:
         cached_tile = get_tile_from_disk(
-            output_filepath, input_filepath, meshing_method, params, z, x, y
+            output_filepath, input_filepath, meshing_method, z, x, y
         )
         if cached_tile is not None:
             return
 
-    tile_url = f"http://localhost:5580/tiles/{z}/{x}/{y}.terrain?cog={input_filepath}&skipCache=true&meshingMethod={meshing_method}"
+    tile_url = f"http://localhost:{port}/tiles/{z}/{x}/{y}.terrain?cog={input_filepath}&skipCache=true&meshingMethod={meshing_method}"
     if params is not None:
         tile_url += f"&{params}"
 
     headers = {"Accept": "application/vnd.quantized-mesh;extensions=octvertexnormals"}
-    response = requests.get(tile_url, headers=headers)
-    if response.status_code == 200:
-        tile_data = response.content
-        y = tms_y_max - y
-        save_tile_to_disk(
-            output_filepath, input_filepath, meshing_method, z, x, y, tile_data
-        )
-    else:
-        logging.error(
-            f"Failed to generate tile {x} {y} {z}. Status code: {response.status_code}"
-        )
+    async with aiohttp.ClientSession() as session:
+        async with session.get(tile_url, headers=headers) as response:
+            if response.status == 200:
+                tile_data = await response.read()
+                y = tms_y_max - y
+                save_tile_to_disk(
+                    output_filepath, input_filepath, meshing_method, z, x, y, tile_data
+                )
+            else:
+                logging.error(
+                    f"Failed to generate tile {x} {y} {z}. Status code: {response.status}"
+                )
 
 async def clear_tasks():
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     [task.cancel() for task in tasks]
     await asyncio.gather(*tasks, return_exceptions=True)
     
-async def main():
+async def main(port: int):
     try:
         # Clear all arguments except the script name
         sys.argv = []
 
         os.environ["CTOD_UNSAFE"] = "false"
+        os.environ["CTOD_LOGGING_LEVEL"] = "debug"
+        os.environ["WORKERS_PER_CORE"] = "1"
+        
         config = Config(
-            "ctod.server.server:app",
+            "ctod.server.fastapi:app",
             host="0.0.0.0",
-            port=5580,
+            port=port,
             log_config=None,
             reload=False,
             workers=1,
@@ -176,9 +218,8 @@ async def main():
         await asyncio.sleep(2)
 
         done_future = Future()
-        threading.Thread(
-            target=seed_cache,
-            args=(
+        seed_cache_task = asyncio.create_task(
+            seed_cache(
                 server,
                 tms,
                 args.input,
@@ -188,8 +229,9 @@ async def main():
                 zoom_levels,
                 args.overwrite,
                 done_future,
-            ),
-        ).start()
+                port
+            )
+        )
 
         # Wait for the done_future to be set
         while not done_future.done():
@@ -242,6 +284,13 @@ if __name__ == "__main__":
         help="The zoom levels to create a cache for. Separate multiple levels with '-'.",
     )
     parser.add_argument(
+        "--port",
+        metavar="port",
+        required=False,
+        default="5580",
+        help="The port to run the server on. Defaults to 5580.",
+    )
+    parser.add_argument(
         "-p",
         "--params",
         metavar="request_parameters",
@@ -257,8 +306,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     tms = utils.get_tms()
+    port = int(args.port)
     zoom_levels = list(map(int, args.zoom_levels.split("-")))
 
     logging.info(f"Creating cache for {args.input} at zoom levels {zoom_levels}")
 
-    asyncio.run(main())
+    asyncio.run(main(port))
+
