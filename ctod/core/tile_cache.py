@@ -1,5 +1,5 @@
 import os
-
+import aiofiles
 
 def get_tile_path(path: str, cog: str, meshing_method: str, z: int, x: int) -> str:
     """Get the path to the tile folder
@@ -36,7 +36,7 @@ def get_tile_filepath(path: str, cog: str, meshing_method: str, z: int, x: int, 
     tile_path = get_tile_path(path, cog, meshing_method, z, x)
     return os.path.join(tile_path, f"{y}.terrain")
     
-def get_tile_from_disk(path: str, cog: str, meshing_method: str, z: int, x: int, y: int) -> bytes:
+async def get_tile_from_disk(path: str, cog: str, meshing_method: str, z: int, x: int, y: int) -> bytes:
     """Get a terrain tile from disk, filepath is based on path, cog, mesding_method, z, x, y
 
     Args:
@@ -53,13 +53,13 @@ def get_tile_from_disk(path: str, cog: str, meshing_method: str, z: int, x: int,
     file_path = get_tile_filepath(path, cog, meshing_method, z, x, y)
 
     if os.path.exists(file_path):
-        with open(file_path, "rb") as f:
-            return f.read()
+        async with aiofiles.open(file_path, "rb") as f:
+            return await f.read()
     else:
         return None
     
 
-def save_tile_to_disk(path: str, cog: str, meshing_method: str, z: int, x: int, y: int, data: bytes):
+async def save_tile_to_disk(path: str, cog: str, meshing_method: str, z: int, x: int, y: int, data: bytes):
     """Save a terrain tile to disk, filepath is based on path, cog, mesding_method, z, x, y
 
     Args:
@@ -79,5 +79,5 @@ def save_tile_to_disk(path: str, cog: str, meshing_method: str, z: int, x: int, 
     if not os.path.exists(tile_path):
         os.makedirs(tile_path)
 
-    with open(file_path, "wb") as f:
-        f.write(data)
+    async with aiofiles.open(file_path, "wb") as f:
+        await f.write(data)
