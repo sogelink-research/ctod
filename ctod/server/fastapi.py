@@ -1,6 +1,6 @@
 import os
 import ctod.server.queries as queries
-
+import logging
 from ctod.core import utils
 from ctod.server.helpers import get_extensions
 from ctod.args import parse_args, get_value
@@ -8,10 +8,12 @@ from ctod.core.cog.cog_reader_pool import CogReaderPool
 from ctod.core.factory.terrain_factory import TerrainFactory
 from ctod.server.handlers.layer import get_layer_json
 from ctod.server.handlers.terrain import TerrainHandler
+from ctod.server.startup import patch_occlusion, setup_logging, log_ctod_start
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+
 
 
 globals = {}
@@ -27,8 +29,20 @@ async def lifespan(app: FastAPI):
     tile_cache_path = get_value(
         args, "tile_cache_path", os.environ.get("CTOD_TILE_CACHE_PATH", None), None
     )
+    port = get_value(args, "port", int(os.environ.get("CTOD_PORT", 5000)), 5000)
+    logging_level = get_value(
+        args, "logging_level", os.environ.get("CTOD_LOGGING_LEVEL", "info"), "info"
+    )
+    factory_cache_ttl = 10
+    
+    patch_occlusion()
+    setup_logging(log_level=getattr(logging, logging_level.upper()))
+    log_ctod_start(port, tile_cache_path)
 
-    globals["terrain_factory"] = TerrainFactory()
+    terrain_factory = TerrainFactory(tile_cache_path, factory_cache_ttl)
+    await terrain_factory.cache.initialize()
+    
+    globals["terrain_factory"] = terrain_factory
     globals["terrain_factory"].start_periodic_check()
     globals["cog_reader_pool"] = CogReaderPool(unsafe)
     globals["tile_cache_path"] = tile_cache_path

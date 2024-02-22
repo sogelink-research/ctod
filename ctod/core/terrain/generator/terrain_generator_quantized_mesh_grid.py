@@ -1,9 +1,8 @@
-import logging
-
 from ctod.core.terrain.generator.terrain_generator import TerrainGenerator
 from ctod.core.terrain.empty_tile import generate_empty_tile
 from ctod.core.terrain.terrain_request import TerrainRequest
 from ctod.core.terrain.quantize import quantize
+from ctod.core.utils import rescale_positions
 from ctod.core.terrain.generator.mesh_helper import (
     get_neighbor_files, 
     get_neighbour_transformed_edge_vertices, 
@@ -33,13 +32,14 @@ class TerrainGeneratorQuantizedMeshGrid(TerrainGenerator):
             quantized_empty_tile = generate_empty_tile(main_cog.tms, main_cog.z, main_cog.x, main_cog.y)
             return quantized_empty_tile
         
-        vertices, triangles, normals, rescaled = main_cog.processed_data
+        vertices, triangles, normals = main_cog.processed_data
 
         n, ne, e, se, s, sw, w, nw = get_neighbor_files(terrain_request)
         neighbour_vertices = get_neighbour_transformed_edge_vertices(self.tile_size, n, ne, e, se, s, sw, w, nw)
         neighbour_normals = get_neighbour_normals(self.tile_size, n, ne, e, se, s, sw, w, nw) if terrain_request.generate_normals else None
         
         average_height_and_normals_to_neighbours(vertices, normals, neighbour_vertices, neighbour_normals)
+        rescaled = rescale_positions(vertices, main_cog.tile_bounds, flip_y=False)
         quantized = quantize(rescaled, triangles, normals)
 
         return quantized

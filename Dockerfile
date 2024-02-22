@@ -12,7 +12,7 @@ ENV VSI_CACHE=TRUE
 
 COPY pyproject.toml poetry.lock /app/
 COPY ./ctod /app/ctod/
-COPY app.py /app/
+COPY start_server.py /app/
 
 RUN apt-get update \
     && apt-get install -y gcc \
@@ -25,4 +25,4 @@ RUN apt-get update \
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+CMD ["python", "start_server.py"]

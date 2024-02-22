@@ -1,173 +1,225 @@
-import sqlite3
+import asyncio
 import time
 import pickle
 import os
-from typing import Any, Callable, List, Optional
+import time
+import logging
+
+from typing import Any, Callable, Dict, List
 from pyee import AsyncIOEventEmitter
+import aiosqlite
 
 
 class FactoryCache:
     """A simple SQLite cache to store and retrieve cog raw and processed data.
-    
+
     When doing everything in memory the memory can grow fast and often results in memory
     not directly released back to the OS. To keep a low memory footprint we use a SQLite database
     for a file based approach.
-    
-    In a later stage we can add the option for Redis aiocache cache to share state between 
+
+    In a later stage we can add the option for Redis aiocache cache to share state between
     multiple servers if needed.
-    
+
     The cache can be shared between workers to take full advantage of the available resources
     instead of running only a single worker.
     """
-    
-    def __init__(self, in_memory: bool = False, ttl: int = 60):
+
+    def __init__(self, cache_path: str, in_memory: bool = False, ttl: int = 30):
         """
         Initialize the FactoryCache object.
 
         Args:
-            db_name (str, optional): The name of the SQLite database file. Defaults to ":memory:".
+            in_memory (bool, optional): Whether to use an in-memory database. Defaults to False.
             ttl (int, optional): The time-to-live (in seconds) for cached items. Defaults to 60.
+            pool_size (int, optional): The size of the connection pool. Defaults to 5.
         """
-        
+
         self.ttl = ttl
-        self.db_name = "factory_cache.db" if not in_memory else ":memory:"
-        self.conn = sqlite3.connect(self.db_name)
-        self.cursor = self.conn.cursor()
-        self._create_table()
-        self._clear()
+        self.db_name = (
+            f"{cache_path}/factory_cache.db"
+            if cache_path is not None and not in_memory
+            else "factory_cache.db" if not in_memory else ":memory:"
+        )
         self.ee = AsyncIOEventEmitter()
         self.keys = []
+        self.batch = {}
+        self.batch_processing = False
+        self.batch_rerun = False
+        self.lock = asyncio.Lock()
 
-    def _create_table(self) -> None:
+    async def initialize(self):
+        await self._create_table()
+
+    async def _create_table(self):
         """
-        Create the cache table if it doesn't exist.
+        Create the cache table if it does not exist.
         """
         
-        self.cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS cache (
-                key TEXT PRIMARY KEY,
-                value BLOB,
-                timestamp REAL
-            )
-        """
-        )
-        self.conn.commit()
+        async with aiosqlite.connect(self.db_name) as db:
+            try:
+                await db.execute(
+                    "CREATE TABLE IF NOT EXISTS cache (key TEXT, value BLOB, timestamp REAL)"
+                )
+                await db.commit()
+            except aiosqlite.Error as e:
+                logging.error(f"Error creating factory cache table: {e}")
 
-    async def set(self, key: str, value: Any) -> None:
+    async def update_keys(self) -> None:
         """
-        Set a value in the cache with the specified key.
+        Update the list of keys in the cache.
+        """
+        
+        async with self.lock:
+            self.keys = await self._get_keys()
+
+    async def add(self, key: str, value: Any) -> None:
+        """
+        Add a key-value pair to the cache.
+        
+        Add will trigger many times and very fast, to increase performance we process
+        the items batched. Items will be saved up when a batch is being processed, the
+        saved up batch will be processed when the previous batch is done.
 
         Args:
-            key (str): The key to associate with the value.
+            key (str): The key to identify the value.
             value (Any): The value to be stored in the cache.
         """
         
-        self.cursor.execute(
-            """
-            INSERT OR REPLACE INTO cache (key, value, timestamp) 
-            VALUES (?, ?, ?)
-        """,
-            (key, pickle.dumps(value), time.time()),
-        )
-        self.conn.commit()
-        self.keys = self.get_keys()
-        self.ee.emit("set", key)
+        async with self.lock:
+            self.batch[key] = value
 
-    def get(self, key: str) -> Any:
+        if self.batch_processing:
+            self.batch_rerun = True
+        else:
+            self.batch_processing = True
+            asyncio.create_task(self._add_batched())
+
+    async def _add_batched(self) -> None:
         """
-        Get the value associated with the specified key from the cache.
+        Process the batched items and add them to the cache.
+
+        This method is called asynchronously to process the batched items and add them to the cache.
+        """
+        async with self.lock:
+            batch_copy = self.batch.copy()
+            self.batch.clear()
+
+        if batch_copy:
+            try:
+                async with aiosqlite.connect(self.db_name) as db:
+                    for key, value in batch_copy.items():
+                        await db.execute(
+                            """
+                            INSERT OR REPLACE INTO cache (key, value, timestamp) 
+                            VALUES (?, ?, ?)
+                            """,
+                            (key, pickle.dumps(value), time.time()),
+                        )
+                    await db.commit()
+            except aiosqlite.Error as e:
+                logging.error(f"Error adding to factory cache: {e}")
+
+            await self.update_keys()
+            self.ee.emit("cache_updated")
+
+        # If add was called while processing the batch, pickup the new batch
+        if self.batch_rerun:
+            self.batch_rerun = False
+            await self._add_batched()
+        else:
+            self.batch_processing = False
+        async with self.lock:
+            batch_copy = self.batch.copy()
+            self.batch.clear()
+
+        if batch_copy:
+            try:
+                async with aiosqlite.connect(self.db_name) as db:
+                    for key, value in batch_copy.items():
+                        await db.execute(
+                            """
+                            INSERT OR REPLACE INTO cache (key, value, timestamp) 
+                            VALUES (?, ?, ?)
+                            """,
+                            (key, pickle.dumps(value), time.time()),
+                        )
+                    await db.commit()
+            except aiosqlite.Error as e:
+                logging.error(f"Error adding to factory cache: {e}")
+
+            await self.update_keys()
+            self.ee.emit("cache_updated")
+
+        # If add was called while processing the batch, pickup the new batch
+        if self.batch_rerun:
+            self.batch_rerun = False
+            await self._add_batched()
+        else:
+            self.batch_processing = False
+
+    async def get(self, keys: List[str]) -> Dict[str, Any]:
+        """
+        Get the values associated with the specified keys from the cache.
 
         Args:
-            key (str): The key to retrieve the value for.
+            keys (List[str]): The keys to retrieve the values for.
 
         Returns:
-            Any: The value associated with the key, or None if the key does not exist or has expired.
+            Dict[str, Any]: A dictionary where the keys are the keys passed to the function and the values are the corresponding values from the cache.
         """
-        
-        self.cursor.execute(
-            """
-            SELECT value FROM cache WHERE key = ?
-        """,
-            (key,),
-        )
-        result = self.cursor.fetchone()
-        if result is None:
-            return None
 
-        return pickle.loads(result[0])
+        placeholders = ", ".join("?" for _ in keys)
+        query = f"SELECT * FROM cache WHERE key IN ({placeholders})"
 
-    def delete(self, key: str) -> None:
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                cursor = await db.execute(query, keys)
+                entries = await cursor.fetchall()
+
+                if entries is None:
+                    return {key: None for key in keys}
+
+                values = {entry[0]: pickle.loads(entry[1]) for entry in entries}
+                return values
+
+        except aiosqlite.Error as e:
+            logging.error(f"Error getting from factory cache: {e}")
+
+    async def clear_expired(self, keys_to_keep: List[str]) -> None:
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                await db.execute(
+                    "DELETE FROM cache WHERE (strftime('%s', 'now') - timestamp) > ? AND key NOT IN (?)",
+                    (self.ttl, ",".join(keys_to_keep)),
+                )
+                await db.commit()
+                
+        except aiosqlite.Error as e:
+            logging.error(f"Error clearing expired items from factory cache: {e}")
+            
+        finally:
+            await self.update_keys()
+
+    async def get_cache_size(self) -> int:
         """
-        Delete the value associated with the specified key from the cache.
-
-        Args:
-            key (str): The key to delete from the cache.
-        """
-        
-        self.cursor.execute(
-            """
-            DELETE FROM cache WHERE key = ?
-        """,
-            (key,),
-        )
-        self.conn.commit()
-        self.keys = self.get_keys()
-
-    def _clear(self) -> None:
-        """
-        Clear the entire cache by deleting all entries.
-
-        This function deletes all entries from the cache table in the SQLite database.
-        """
-        
-        self.cursor.execute("DELETE FROM cache")
-        self.conn.commit()
-        self.keys = self.get_keys()
-
-    def clear_expired(self, keys_to_keep: Optional[List[str]] = None) -> None:
-        """
-        Clear expired entries from the cache.
-
-        This function deletes all entries from the cache table in the SQLite database
-        where the difference between the current timestamp and the stored timestamp is greater than the TTL,
-        excluding the keys provided in keys_to_keep.
-
-        Note: The TTL (Time To Live) is the maximum time in seconds that an entry can remain in the cache.
-
-        Args:
-            keys_to_keep (Optional[List[str]]): A list of keys to keep in the cache.
+        Get the size of the cache.
 
         Returns:
-            None
+            int: The number of items in the cache.
         """
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                cursor = await db.execute("SELECT COUNT(*) FROM cache")
+                count = await cursor.fetchone()
+                return count[0]
+        except aiosqlite.Error as e:
+            logging.error(f"Error getting cache size: {e}")
         
-        keys_to_keep = keys_to_keep or []
-        placeholders = ', '.join('?' for _ in keys_to_keep)
-        query = f"""
-            DELETE FROM cache WHERE (? - timestamp) > ? AND key NOT IN ({placeholders})
-        """
-        self.cursor.execute(
-            query,
-            (time.time(), self.ttl, *keys_to_keep),
-        )
-        self.conn.commit()
-        self.keys = self.get_keys()
+        return None
 
-    def get_keys(self) -> List[str]:
+    def on_cache_change(self, func: Callable[[str, Any], None]) -> None:
         """
-        Get all keys stored in the cache.
-
-        Returns:
-            List[str]: A list of keys stored in the cache.
-        """
-        
-        self.cursor.execute("SELECT key FROM cache")
-        return [row[0] for row in self.cursor.fetchall()]
-
-    def on_set(self, func: Callable[[str, Any], None]) -> None:
-        """
-        Register a callback function to be called when a key-value pair is set in the cache.
+        Register a callback function to be called when new data is added to the cache.
 
         Args:
             func (Callable[[str, Any], None]): The callback function to be registered.
@@ -177,25 +229,51 @@ class FactoryCache:
         Returns:
             None
         """
+
+        self.ee.on("cache_updated", func)
         
-        self.ee.on("set", func)
+    async def _get_keys(self) -> List[str]:
+        """
+        Get all keys stored in the cache.
+
+        Returns:
+            List[str]: A list of keys stored in the cache.
+        """
+
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                cursor = await db.execute("SELECT key FROM cache")
+                keys = [row[0] for row in await cursor.fetchall()]
+                return keys
+        except aiosqlite.Error as e:
+            print("ERROR GET KEY", e)
+
+    async def _clear_cache(self) -> None:
+        try:
+            async with aiosqlite.connect(self.db_name) as db:
+                await db.execute("DELETE FROM cache")
+                await db.commit()
+                
+        except aiosqlite.Error as e:
+            logging.error(f"Error clearing factory cache: {e}")
+            
+        finally:
+            await self.update_keys()
 
     def close(self) -> None:
         """
         Close the FactoryCache instance.
 
-        This function removes all event listeners, closes the SQLite connection,
-        and deletes the database file if it is not an in-memory database.
+        This function removes all event listeners and deletes the database file if it is not an in-memory database.
 
         Returns:
             None
         """
-        
+
         self.ee.remove_all_listeners()
-        self.conn.close()
-        
-        if self.db_name != ":memory:":
+
+        if self.db_name != ":memory:" and os.path.exists(self.db_name):
             os.remove(self.db_name)
-    
+
     def __del__(self):
-        self.conn.close()
+        self.close()

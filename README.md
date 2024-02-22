@@ -91,19 +91,19 @@ ghcr.io/sogelink-research/ctod:latest
 
 ### From source
 
-Create a virtual environment, install and run CTOD.
+Install and run CTOD using poetry.
 
 ```sh
 poetry env use python3.10
 poetry install
 poetry shell
-poetry run python app.py
+poetry run start
 ```
 
-To enable caching, supply --tile-cache-path path to app.py.
+To enable caching, supply --tile-cache-path path.
 
 ```sh
-python app.py --tile-cache-path ./ctod_cache
+poetry run start --tile-cache-path ./ctod_cache
 ```
 
 ## Endpoints

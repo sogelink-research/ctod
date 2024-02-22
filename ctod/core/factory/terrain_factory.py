@@ -19,16 +19,17 @@ class TerrainFactory:
     TerrainFactory checks if TerrainRequest are ready for precessing and if so, processes them.
     """
 
-    def __init__(self, cache_expiry_seconds=30):
-        self.cache_expiry_seconds = cache_expiry_seconds
+    def __init__(self, cache_path: str, cache_ttl: int = 30):
         self.open_requests = set()
         self.terrain_requests = {}
         self.processing_queue = asyncio.Queue()
         self.lock = asyncio.Lock()
-        self.cache = FactoryCache(False, ttl=cache_expiry_seconds)
+        self.cache = FactoryCache(cache_path, False, ttl=cache_ttl)
         self.pid = psutil.Process().pid
         self.executor = None
-        self.cache.on_set(self.cache_on_set)
+        self.cache.on_cache_change(self.cache_changed)
+        self.processing_terrain_requests = False
+        self.processing_terrain_requests_rerun = False
 
     async def handle_request(
         self,
@@ -48,6 +49,7 @@ class TerrainFactory:
 
         async with self.lock:
             # add terrain_request to terrain_requests cache
+            # ToDo: What happens when 2 users request the same tile when not cached/not using cache?
             self.terrain_requests[terrain_request.key] = terrain_request
 
             # loop over wanted files and add to processing queue if needed
@@ -55,7 +57,7 @@ class TerrainFactory:
                 item[0].key for item in self.processing_queue._queue
             )
             open_requests_keys = set(self.open_requests)
-
+            
             for wanted_file in terrain_request.wanted_files:
                 # Check if the data is already available in the cache
                 if wanted_file.key not in self.cache.keys:
@@ -81,16 +83,19 @@ class TerrainFactory:
 
         await self._process_queue()
 
-        # if all wanted files are in the cache: self.cache.keys, process the terrain request
+        # if all wanted files are in the cache: self.cache.keys trigger cache_changed
+        # to see if we can directly process the terrain_request
         if set(terrain_request.wanted_file_keys).issubset(self.cache.keys):
-            await self._process_terrain_requests()
+            asyncio.create_task(self.cache_changed())
 
         return await terrain_request.wait()
 
     def start_periodic_check(self, interval: int = 5):
+        """Start a task to periodically check the cache for expired items"""
+
         asyncio.create_task(self.periodic_check(interval))
 
-    async def periodic_check(self, interval: int = 5):
+    async def periodic_check(self, interval: int):
         """Periodically check the cache for expired items
 
         Args:
@@ -104,147 +109,142 @@ class TerrainFactory:
     async def _process_queue(self):
         """Process the queue with CogRequests"""
 
-        async with self.lock:
-            while not self.processing_queue.empty():
-                (cog_request,) = await self.processing_queue.get()
-                self.open_requests.add(cog_request.key)
-                asyncio.create_task(self._process_completed_cog_request(cog_request))
-                del cog_request
-
-    async def _process_completed_cog_request(self, cog_request):
-        try:
-            async with self.lock:
-                await cog_request.download_tile_async(self._get_executor())
-                if cog_request:
-                    self.open_requests.remove(cog_request.key)
-
-            await self.cache.set(
-                cog_request.key,
-                {
-                    "data": cog_request.data,
-                    "processed_data": cog_request.processed_data,
-                    "is_out_of_bounds": cog_request.is_out_of_bounds,
-                },
-            )
+        #async with self.lock:
+        while not self.processing_queue.empty():
+            (cog_request,) = await self.processing_queue.get()
+            self.open_requests.add(cog_request.key)
+            asyncio.create_task(self._process_cog_request(cog_request))
             del cog_request
 
-        except Exception as e:
-            logging.error(f"Error processing completed cog request: {e}")
+    async def _process_cog_request(self, cog_request):
+        """Process a CogRequest by downloading the data and adding data to the cache"""
 
-    async def _handle_cancelled_request(self, terrain_request: TerrainRequest):
-        """Handle a cancelled TerrainRequest
+        await cog_request.download_tile_async(self._get_executor())
+        await self.cache.add(
+            cog_request.key,
+            {
+                "data": cog_request.data,
+                "processed_data": cog_request.processed_data,
+                "is_out_of_bounds": cog_request.is_out_of_bounds,
+            },
+        )
 
-        Args:
-            terrain_request (TerrainRequest): Terrain requested trough API
-        """
+        if cog_request:
+            self.open_requests.remove(cog_request.key)
 
-        async with self.lock:
-            # remove terrain_request from terrain_requests cache
-            if terrain_request.key in self.terrain_requests:
-                del self.terrain_requests[terrain_request.key]
+        del cog_request
 
-            # loop over wanted files in queue and remove if not in wanted files for every terrain_request in self.terrain_requests
-            for wanted_file in list(self.processing_queue._queue):
-                if wanted_file[0].key not in [
-                    wanted_file.key
-                    for terrain_request in self.terrain_requests.values()
-                    for wanted_file in terrain_request.wanted_files
-                ]:
-                    self.processing_queue._queue.remove(wanted_file)
-                if wanted_file[0].key in self.open_requests:
-                    self.open_requests.remove(wanted_file[0].key)
-
-    async def cache_on_set(self, key):
+    async def cache_changed(self):
         """Triggered by the cache when a new item was added"""
 
-        await self._process_terrain_requests()
+        # If already processing the list set rerun to True
+        # We don't want to queue since process_terrain_request should pick up 
+        # everything that is available for processing
+        if self.processing_terrain_requests:
+            self.processing_terrain_requests_rerun = True
+        else:
+            self.processing_terrain_requests = True
+            asyncio.create_task(self._process_terrain_requests())
 
     async def _process_terrain_requests(self):
         """Check and run process on terrain requests when ready for processing"""
 
-        async with self.lock:
-            keys_to_remove = []
-            temp_cache = {}
-
-            try:
+        try:
+            async with self.lock:
                 # Convert to use O(n) complexity instead of O(n^2) with set intersection
                 cache_keys = set(self.cache.keys)
+                terrain_keys = list(self.terrain_requests.items())
 
-                for key, terrain_request in list(self.terrain_requests.items()):
-                    wanted_keys = set(terrain_request.wanted_file_keys)
+            # Build a list of keys to get from the cache
+            keys_to_get = []
+            for key, terrain_request in terrain_keys:
+                if terrain_request.processing or terrain_request.result_set:
+                    continue
 
-                    # if all wanted files are in the cache, process the terrain request
-                    if wanted_keys.issubset(cache_keys):
-                        for wanted_file in terrain_request.wanted_files:
+                wanted_keys = set(terrain_request.wanted_file_keys)
+                if wanted_keys.issubset(cache_keys):
+                    keys_to_get.extend(wanted_keys)
 
-                            # Temporary in-memory cache to prevent accessing database
-                            # and running pickle.loads multiple times
-                            if wanted_file.key not in temp_cache:
-                                cached_item = self.cache.get(wanted_file.key)
-                                temp_cache[wanted_file.key] = cached_item
-                            else:
-                                cached_item = temp_cache[wanted_file.key]
+            # Get all items from the cache at once
+            cached_items = await self.cache.get(keys_to_get)
 
-                            if cached_item:
-                                wanted_file.set_data(
-                                    cached_item["data"],
-                                    cached_item["processed_data"],
-                                    cached_item["is_out_of_bounds"],
-                                )
-                            else:
-                                wanted_file.set_data(None, None, True)
+            for key, terrain_request in terrain_keys:
+                if terrain_request.processing or terrain_request.result_set:
+                    continue
 
-                        keys_to_remove.append(key)
-                        asyncio.create_task(terrain_request.process())
+                wanted_keys = set(terrain_request.wanted_file_keys)
+                if wanted_keys.issubset(cache_keys):
+                    for wanted_file in terrain_request.wanted_files:
+                        cached_item = cached_items.get(wanted_file.key)
+                        if cached_item:
+                            wanted_file.set_data(
+                                cached_item["data"],
+                                cached_item["processed_data"],
+                                cached_item["is_out_of_bounds"],
+                            )
+                        else:
+                            wanted_file.set_data(None, None, True)
 
-                for key in keys_to_remove:
-                    del self.terrain_requests[key]
+                    # all data set, ready for processing
+                    self.terrain_requests.pop(key, None)
+                    asyncio.create_task(terrain_request.process())
 
-                # try to free memory by resizing the underlying map
-                self.terrain_requests = dict(self.terrain_requests.items())
+            del cache_keys
 
-            except Exception as e:
-                logging.error(f"Error processing terrain request: {e}")
+        except Exception as e:
+            logging.error(f"Error processing terrain request: {e}")
+
+        if self.processing_terrain_requests_rerun:
+            self.processing_terrain_requests_rerun = False
+            asyncio.create_task(self._process_terrain_requests())
+        else:
+            self.processing_terrain_requests = False
 
     async def _cleanup(self):
         """Check the cache for expired items and remove them"""
 
-        async with self.lock:
-            keep = []
-            for _, terrain_request in list(self.terrain_requests.items()):
-                for wanted_file in terrain_request.wanted_files:
-                    keep.append(wanted_file.key)
+        #async with self.lock:
+        keep = []
+        for _, terrain_request in list(self.terrain_requests.items()):
+            for wanted_file in terrain_request.wanted_files:
+                keep.append(wanted_file.key)
 
-            self.cache.clear_expired(keep)
-            if len(self.terrain_requests) == 0:
-                self.terrain_requests = {}
-                self._try_reset_executor()
+        await self.cache.clear_expired(keep)
+        if len(self.terrain_requests) == 0:
+            self.terrain_requests = {}
+            self._try_reset_executor()
 
-            if len(self.open_requests) == 0:
-                self.open_requests = set()
+        if len(self.open_requests) == 0:
+            self.open_requests = set()
 
-            if self.processing_queue.qsize() == 0:
-                self.processing_queue = asyncio.Queue()
+        if self.processing_queue.qsize() == 0:
+            self.processing_queue = asyncio.Queue()
 
-            if logging.getLogger().level == logging.DEBUG:
-                self._print_debug_info()
+        if logging.getLogger().level == logging.DEBUG:
+            self._print_debug_info()
 
     def _get_executor(self):
+        """Get the ThreadPoolExecutor"""
+        
         if self.executor is None:
-            self.executor = ThreadPoolExecutor(max_workers=40)
+            self.executor = ThreadPoolExecutor(max_workers=20)
 
         return self.executor
 
     def _try_reset_executor(self):
-        # If the executor is not doing anything, shut it down
+        """
+        Try to reset the ThreadPoolExecutor if it's not doing anything
+        This is to try to free up memory when idle but seems to have no effect
+        but has no negative impact either.
+        """
+        
         if self.executor and self.executor._work_queue.empty():
             self.executor.shutdown(wait=False)
             self.executor = None
 
     def _print_debug_info(self):
-        memory_info = psutil.Process(self.pid).memory_info()
-        memory_usage_mb = memory_info.rss / (1024 * 1024)
-        logging.debug(f"Memory usage: {memory_usage_mb} MB")
+        """Print debug info about the factory and it's state"""
+        
         logging.debug(
-            f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache_test)}, open requests: {len(self.open_requests)}, queue size: {self.processing_queue.qsize()}"
+            f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache.keys)}, open requests: {len(self.open_requests)}, queue size: {self.processing_queue.qsize()}"
         )

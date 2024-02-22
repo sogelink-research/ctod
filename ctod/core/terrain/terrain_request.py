@@ -28,6 +28,7 @@ class TerrainRequest:
         self._generate_wanted_files()
         self.key = generate_cog_cache_key(self.cog, cog_processor.get_name(), self.z, self.x, self.y)
         self.wanted_file_keys = self.get_wanted_file_keys()
+        self.processing = False
         self.future = asyncio.Future()
         self.result_set = False        
 
@@ -94,9 +95,13 @@ class TerrainRequest:
     
     async def process(self):
         """Start processing the terrain tile"""
+        if(self.processing or self.result_set):
+            return
         
+        self.processing = True
         result = self.terrain_generator.generate(self)
         self.set_result(result)
+        self.processing = False
         
     def set_result(self, result: bytes):
         """Set the result of the terrain tile

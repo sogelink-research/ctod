@@ -58,7 +58,7 @@ class CogProcessorQuantizedMeshGrid(CogProcessor):
         cartesian = to_ecef(rescaled, ellipsoid=self.ellipsoid)
         normals = calculate_normals(cartesian, triangles_new) if cog_request.generate_normals else None
 
-        return (vertices2d_new, triangles_new, normals, rescaled)
+        return (vertices2d_new, triangles_new, normals)
 
     def _load_settings(self, settings: dict):
         """Parse the config
