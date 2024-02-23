@@ -213,9 +213,8 @@ class TerrainFactory:
                 self.terrain_requests = {}
                 self._try_reset_executor()
 
-            logging.info(
-                f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache.keys)}, open requests: {len(self.open_requests)}, queue size: {self.processing_queue.qsize()}"
-            )
+        if logging.getLogger().level == logging.DEBUG:
+            self._print_debug_info()
 
     def _get_executor(self):
         """Get the ThreadPoolExecutor"""
@@ -239,6 +238,6 @@ class TerrainFactory:
     def _print_debug_info(self):
         """Print debug info about the factory and it's state"""
         
-        logging.debug(
+        logging.info(
             f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache.keys)}, open requests: {len(self.open_requests)}, queue size: {self.processing_queue.qsize()}"
         )
