@@ -9,6 +9,7 @@ readme = "README.md"
 [tool.poetry.scripts]
 start = "start_server:main"
 dev = "start_server:main_dev"
+seed_cache = "scripts.seed_cache:main"
 
 [tool.poetry.dependencies]
 python = "^3.10"

@@ -226,15 +226,21 @@ async def clear_tasks():
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
-async def main(port: int, request_count: int):
+async def run(parser: argparse.ArgumentParser):
     try:
+        args = parser.parse_args()
+        port = int(args.port)
+        request_count = int(args.request_count)
+        zoom_levels = list(map(int, args.zoom_levels.split("-")))
+    
         # Clear all arguments except the script name
         sys.argv = []
 
         os.environ["CTOD_UNSAFE"] = "false"
-        os.environ["CTOD_LOGGING_LEVEL"] = "debug"
+        os.environ["CTOD_LOGGING_LEVEL"] = "info"
         os.environ["WORKERS_PER_CORE"] = "1"
 
+        tms = utils.get_tms()
         config = Config(
             "ctod.server.fastapi:app",
             host="0.0.0.0",
@@ -284,8 +290,7 @@ async def main(port: int, request_count: int):
     finally:
         loop.stop()
 
-
-if __name__ == "__main__":
+def main():
     setup_logging()
     parser = argparse.ArgumentParser(description="Seed the cache")
     parser.add_argument(
@@ -345,12 +350,7 @@ if __name__ == "__main__":
         help="Add --overwrite to overwrite existing tiles in the cache. Defaults to False.",
     )
 
-    args = parser.parse_args()
-    tms = utils.get_tms()
-    port = int(args.port)
-    request_count = int(args.request_count)
-    zoom_levels = list(map(int, args.zoom_levels.split("-")))
-
-    logging.info(f"Creating cache for {args.input} at zoom levels {zoom_levels}")
-
-    asyncio.run(main(port, request_count))
+    asyncio.run(run(parser))
+    
+if __name__ == "__main__":
+    main()
