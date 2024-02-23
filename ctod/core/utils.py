@@ -1,5 +1,7 @@
 import numpy as np
 import os
+import uuid
+import time
 
 from morecantile import Tile, TileMatrixSet, BoundingBox, tms
 
@@ -30,6 +32,9 @@ def generate_cog_cache_key(cog: str, meshing_method: str, z: int, x: int, y: int
     """
     
     return f"{cog}_{meshing_method}_{z}_{x}_{y}"
+
+def generate_uuid() -> str:
+    return str(uuid.uuid4())
 
 def tile_index_from_cesium(tms: TileMatrixSet, x: int, y: int, z: int) -> tuple[int, int, int]:
     """
