@@ -120,35 +120,9 @@ class FactoryCache:
                 logging.error(f"Error adding to factory cache: {e}")
 
             await self.update_keys()
-            self.ee.emit("cache_updated")
-
-        # If add was called while processing the batch, pickup the new batch
-        if self.batch_rerun:
-            self.batch_rerun = False
-            await self._add_batched()
-        else:
-            self.batch_processing = False
-        async with self.lock:
-            batch_copy = self.batch.copy()
-            self.batch.clear()
-
-        if batch_copy:
-            try:
-                async with aiosqlite.connect(self.db_name) as db:
-                    for key, value in batch_copy.items():
-                        await db.execute(
-                            """
-                            INSERT OR REPLACE INTO cache (key, value, timestamp) 
-                            VALUES (?, ?, ?)
-                            """,
-                            (key, pickle.dumps(value), time.time()),
-                        )
-                    await db.commit()
-            except aiosqlite.Error as e:
-                logging.error(f"Error adding to factory cache: {e}")
-
-            await self.update_keys()
-            self.ee.emit("cache_updated")
+            
+            new_keys = set(batch_copy.keys())
+            self.ee.emit("cache_updated", new_keys)
 
         # If add was called while processing the batch, pickup the new batch
         if self.batch_rerun:
@@ -188,10 +162,9 @@ class FactoryCache:
     async def clear_expired(self, keys_to_keep: List[str]) -> None:
         try:
             async with aiosqlite.connect(self.db_name) as db:
-                await db.execute(
-                    "DELETE FROM cache WHERE (strftime('%s', 'now') - timestamp) > ? AND key NOT IN (?)",
-                    (self.ttl, ",".join(keys_to_keep)),
-                )
+                placeholders = ', '.join('?' for _ in keys_to_keep)
+                query = f"DELETE FROM cache WHERE (strftime('%s', 'now') - timestamp) > ? AND key NOT IN ({placeholders})"
+                await db.execute(query, (self.ttl, *keys_to_keep))
                 await db.commit()
                 
         except aiosqlite.Error as e:

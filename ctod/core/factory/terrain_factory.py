@@ -46,40 +46,36 @@ class TerrainFactory:
         Returns:
             asyncio.Future: Future which will be set when the terrain is ready
         """
-
+        
         async with self.lock:
             # add terrain_request to terrain_requests cache
-            # ToDo: What happens when 2 users request the same tile when not cached/not using cache?
             self.terrain_requests[terrain_request.key] = terrain_request
 
-            # loop over wanted files and add to processing queue if needed
-            processing_queue_keys = set(
-                item[0].key for item in self.processing_queue._queue
-            )
-            open_requests_keys = set(self.open_requests)
+            # loop over wanted files and add to processing queue if needed                
+            processing_queue_keys = set(item.key for item in self.processing_queue._queue)
             
             for wanted_file in terrain_request.wanted_files:
-                # Check if the data is already available in the cache
-                if wanted_file.key not in self.cache.keys:
-                    if (
-                        wanted_file.key not in processing_queue_keys
-                        and wanted_file.key not in open_requests_keys
-                    ):
-                        # Add a new request to the processing queue which handles the download of the cog data
-                        cog_request = CogRequest(
-                            tms,
-                            wanted_file.cog,
-                            wanted_file.z,
-                            wanted_file.x,
-                            wanted_file.y,
-                            processor,
-                            cog_reader_pool,
-                            wanted_file.resampling_method,
-                            wanted_file.generate_normals,
-                        )
+                # Check if the cog request is not already in the cache or processing queue or open requests
+                if (
+                    wanted_file.key not in self.cache.keys
+                    and wanted_file.key not in processing_queue_keys
+                    and wanted_file.key not in self.open_requests
+                ):
+                    # Add a new request to the processing queue which handles the download of the cog data
+                    cog_request = CogRequest(
+                        tms,
+                        wanted_file.cog,
+                        wanted_file.z,
+                        wanted_file.x,
+                        wanted_file.y,
+                        processor,
+                        cog_reader_pool,
+                        wanted_file.resampling_method,
+                        wanted_file.generate_normals,
+                    )
 
-                        await self.processing_queue.put((cog_request,))
-                        del cog_request
+                    await self.processing_queue.put(cog_request)
+                    del cog_request
 
         await self._process_queue()
 
@@ -89,7 +85,7 @@ class TerrainFactory:
             asyncio.create_task(self.cache_changed())
 
         return await terrain_request.wait()
-
+            
     def start_periodic_check(self, interval: int = 5):
         """Start a task to periodically check the cache for expired items"""
 
@@ -109,9 +105,9 @@ class TerrainFactory:
     async def _process_queue(self):
         """Process the queue with CogRequests"""
 
-        #async with self.lock:
         while not self.processing_queue.empty():
-            (cog_request,) = await self.processing_queue.get()
+            cog_request = await self.processing_queue.get()
+            
             self.open_requests.add(cog_request.key)
             asyncio.create_task(self._process_cog_request(cog_request))
             del cog_request
@@ -129,13 +125,17 @@ class TerrainFactory:
             },
         )
 
-        if cog_request:
-            self.open_requests.remove(cog_request.key)
-
         del cog_request
 
-    async def cache_changed(self):
+    async def cache_changed(self, keys: list = None):
         """Triggered by the cache when a new item was added"""
+        
+        # When checking if a cog request is already in cache, open requests
+        # when a new requests comes in we need to have it somewhere so we don't directly
+        # remove a key from the open_requests until we have it in the cache
+        if keys:
+            async with self.lock:
+                self.open_requests = self.open_requests - set(keys)
 
         # If already processing the list set rerun to True
         # We don't want to queue since process_terrain_request should pick up 
@@ -149,11 +149,10 @@ class TerrainFactory:
     async def _process_terrain_requests(self):
         """Check and run process on terrain requests when ready for processing"""
 
-        try:
-            async with self.lock:
-                # Convert to use O(n) complexity instead of O(n^2) with set intersection
-                cache_keys = set(self.cache.keys)
-                terrain_keys = list(self.terrain_requests.items())
+        try:            
+            # Convert to use O(n) complexity instead of O(n^2) with set intersection
+            cache_keys = set(self.cache.keys)
+            terrain_keys = list(self.terrain_requests.items())
 
             # Build a list of keys to get from the cache
             keys_to_get = []
@@ -203,25 +202,20 @@ class TerrainFactory:
     async def _cleanup(self):
         """Check the cache for expired items and remove them"""
 
-        #async with self.lock:
-        keep = []
-        for _, terrain_request in list(self.terrain_requests.items()):
-            for wanted_file in terrain_request.wanted_files:
-                keep.append(wanted_file.key)
+        async with self.lock:
+            keep = []
+            for _, terrain_request in list(self.terrain_requests.items()):
+                for wanted_file in terrain_request.wanted_files:
+                    keep.append(wanted_file.key)
 
-        await self.cache.clear_expired(keep)
-        if len(self.terrain_requests) == 0:
-            self.terrain_requests = {}
-            self._try_reset_executor()
+            await self.cache.clear_expired(keep)
+            if len(self.terrain_requests) == 0:
+                self.terrain_requests = {}
+                self._try_reset_executor()
 
-        if len(self.open_requests) == 0:
-            self.open_requests = set()
-
-        if self.processing_queue.qsize() == 0:
-            self.processing_queue = asyncio.Queue()
-
-        if logging.getLogger().level == logging.DEBUG:
-            self._print_debug_info()
+            logging.info(
+                f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache.keys)}, open requests: {len(self.open_requests)}, queue size: {self.processing_queue.qsize()}"
+            )
 
     def _get_executor(self):
         """Get the ThreadPoolExecutor"""

@@ -1,6 +1,7 @@
 import os
 import aiofiles
 
+
 def get_tile_path(path: str, cog: str, meshing_method: str, z: int, x: int) -> str:
     """Get the path to the tile folder
 
@@ -14,11 +15,14 @@ def get_tile_path(path: str, cog: str, meshing_method: str, z: int, x: int) -> s
     Returns:
         str: path to the tile folder
     """
-    
+
     cog = cog.encode("utf-8").hex()
     return os.path.join(path, cog, meshing_method, str(z), str(x))
 
-def get_tile_filepath(path: str, cog: str, meshing_method: str, z: int, x: int, y: int) -> str:
+
+def get_tile_filepath(
+    path: str, cog: str, meshing_method: str, z: int, x: int, y: int
+) -> str:
     """Get the path to the tile file
 
     Args:
@@ -32,11 +36,14 @@ def get_tile_filepath(path: str, cog: str, meshing_method: str, z: int, x: int, 
     Returns:
         str: path to the tile file
     """
-    
+
     tile_path = get_tile_path(path, cog, meshing_method, z, x)
     return os.path.join(tile_path, f"{y}.terrain")
-    
-async def get_tile_from_disk(path: str, cog: str, meshing_method: str, z: int, x: int, y: int) -> bytes:
+
+
+async def get_tile_from_disk(
+    path: str, cog: str, meshing_method: str, z: int, x: int, y: int
+) -> bytes:
     """Get a terrain tile from disk, filepath is based on path, cog, mesding_method, z, x, y
 
     Args:
@@ -49,7 +56,7 @@ async def get_tile_from_disk(path: str, cog: str, meshing_method: str, z: int, x
     Returns:
         data (bytes): bytes of the .terrain tile (quantized mesh)
     """
-    
+
     file_path = get_tile_filepath(path, cog, meshing_method, z, x, y)
 
     if os.path.exists(file_path):
@@ -57,9 +64,11 @@ async def get_tile_from_disk(path: str, cog: str, meshing_method: str, z: int, x
             return await f.read()
     else:
         return None
-    
 
-async def save_tile_to_disk(path: str, cog: str, meshing_method: str, z: int, x: int, y: int, data: bytes):
+
+async def save_tile_to_disk(
+    path: str, cog: str, meshing_method: str, z: int, x: int, y: int, data: bytes
+):
     """Save a terrain tile to disk, filepath is based on path, cog, mesding_method, z, x, y
 
     Args:
@@ -71,10 +80,10 @@ async def save_tile_to_disk(path: str, cog: str, meshing_method: str, z: int, x:
         y (int): y tile index
         data (bytes): bytes of the .terrain tile (quantized mesh)
     """
-    
+
     tile_path = get_tile_path(path, cog, meshing_method, z, x)
     file_path = get_tile_filepath(path, cog, meshing_method, z, x, y)
-    
+
     # Create the directory if it doesn't exist
     if not os.path.exists(tile_path):
         os.makedirs(tile_path)
