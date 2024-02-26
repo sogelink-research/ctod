@@ -42,7 +42,7 @@ def _generate_default_layer_json(
 
     with COGReader(file_path) as src:
         bounds = src.geographic_bounds
-        return _create_json(bounds, tms, max_zoom)
+        return _create_json(bounds, tms, file_path, max_zoom)
 
 
 def _generate_ctod_layer_json(
@@ -67,10 +67,10 @@ def _generate_ctod_layer_json(
         with open(file_path) as file:
             datasets_json = json.load(file)
 
-    return _create_json(datasets_json["extent"], tms, max_zoom)
+    return _create_json(datasets_json["extent"], tms, file_path, max_zoom)
 
 
-def _create_json(bounds: list, tms: TileMatrixSet, max_zoom: int) -> str:
+def _create_json(bounds: list, tms: TileMatrixSet, file_path: str, max_zoom: int) -> str:
     """Create the layer.json
 
     Args:
@@ -107,7 +107,7 @@ def _create_json(bounds: list, tms: TileMatrixSet, max_zoom: int) -> str:
         "attribution": "",
         "schema": "tms",
         "extensions": ["octvertexnormals"],
-        "tiles": ["{z}/{x}/{y}.terrain?v={version}"],
+        "tiles": ["{z}/{x}/{y}.terrain?v={version}&cog=" + file_path],
         "projection": "EPSG:4326",
         "bounds": [0.00, -90.00, 180.00, 90.00],
         "cogBounds": bounds,
