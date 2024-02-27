@@ -4,7 +4,7 @@
     
 CTOD is a service designed to fetch Cesium terrain tiles (quantized mesh) dynamically generated from a Cloud Optimized GeoTIFF (COG). The core concept behind this service is to eliminate the need for creating an extensive cache, thereby saving time and storage space. Traditional caching methods often involve generating and storing numerous files, many of which may never be requested, resulting in unnecessary resource consumption. CTOD addresses this issue by generating terrain tiles on the fly, optimizing efficiency and reducing the burden on file storage.
 
-> Don't care about on-demand? You can misuse CTOD to generate a cache for you aswell.
+> Don't care about on-demand? You can use CTOD to generate a cache for you aswell.
 
 ## TL;DR
 
@@ -32,6 +32,7 @@ ghcr.io/sogelink-research/ctod:latest
 - Basic tile caching implementation
 - Basic Cesium viewer included for debugging and result visualization.
 - Scripts to partly seed cache and generate mosaic dataset.
+- Works with Cesium for Unity
 
 ## Wiki
 
@@ -92,7 +93,7 @@ ghcr.io/sogelink-research/ctod:latest
 
 ### From source
 
-Install and run CTOD using poetry.
+Install and run CTOD in a virtual environment using poetry.
 
 ```sh
 poetry env use python3.10
@@ -101,13 +102,15 @@ poetry shell
 poetry run start
 ```
 
-To enable caching, supply --tile-cache-path path.
+To enable caching, supply --tile-cache-path `path` with the start command.
 
 ```sh
 poetry run start --tile-cache-path ./ctod_cache
 ```
 
 ## Endpoints
+
+Endpoint documentation for your running CTOD service can also be found under `/doc` and `/redoc`
 
 ### Endpoint: `/`
 
@@ -120,12 +123,12 @@ Returns a sample Cesium viewer, all values can be changed using the control pane
 
 #### Parameters
 
-- **minZoom** : The min zoomlevel for the terrain. Default (0)
-- **maxZoom** : The max zoomlevel for the terrain. Default (18)
-- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
-- **cog** (required): Path or URL to COG file.
-- **ignoreCache** : Set to true to prevent loading tiles from the cache. Default (False)
-- **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
+- **minZoom** : The mininimum zoomlevel, When set CTOD returns empty tiles for zoom < minZoom, Default (1)
+- **maxZoom** : Maximum zoom level that will be requested by the client, Default (18)
+- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default (None)
+- **cog** : Path or URL to COG file.
+- **skipCache** : Set to true to prevent loading tiles from the cache if cache is enabled in CTOD. Default (False)
+- **meshingMethod**: Meshing method to use: grid, martini, delatin, Default (grid)
 
 #### Example
 
@@ -135,7 +138,7 @@ http://localhost:5000?minZoom=1&maxZoom=18&cog=./ctod/files/test_cog.tif
 
 ### Endpoint: `/docs`
 
-OpenAPI docs
+The CTOD OpenAPI documentation with Swagger UI
 
 #### Request
 
@@ -148,6 +151,21 @@ OpenAPI docs
 http://localhost:5000/docs
 ```
 
+### Endpoint: `/redoc`
+
+The CTOD OpenAPI documentation with ReDoc UI
+
+#### Example
+
+```sh
+http://localhost:5000/redoc
+```
+
+#### Request
+
+- **Method:** GET
+- **URL:** `http://localhost:5000/redoc`
+
 ### Endpoint: `/tiles/layer.json`
 
 Dynamically generates a layer.json based on the COG.
@@ -159,8 +177,16 @@ Dynamically generates a layer.json based on the COG.
 
 #### Parameters
 
+- **cog**: Path or URL to COG file.
 - **maxZoom** : The max zoomlevel for the terrain. Default (18)
-- **cog** (required): Path or URL to COG file.
+- **minZoom** : The min zoomlevel for the terrain. Default (0)
+- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
+- **skipCache** : Set to true to prevent loading tiles from the cache. Default (False)
+- **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
+- **defaultGridSize**: The default grid size (amount of rows/cols) to use if there is no specific zoomGridSizes defined for a requested tile, Default (20)
+- **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default when defaultGridSize and zoomGridSizes not set (`{"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35}`)
+- **defaultMaxError**: The default max triangulation error in meters to use, Default (4)
+- **zoomMaxErrors**: Per level defined max error, when requested zoom for tile is not specified use defaultMaxError. Default when defaultMaxError and zoomMaxError not set (`{"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}`)
 
 #### Example
 
@@ -179,21 +205,21 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 
 #### Parameters
 
+- **cog**: Path or URL to COG file.
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
-- **cog** (required): Path or URL to COG file.
 - **skipCache** : Set to true to prevent loading tiles from the cache. Default (False)
 - **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
 
 #### Parameters for meshing method: grid
 
 - **defaultGridSize**: The default grid size (amount of rows/cols) to use if there is no specific zoomGridSizes defined for a requested tile, Default (20)
-- **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default (`{"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35}`)
+- **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default when defaultGridSize and zoomGridSizes not set (`{"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35}`)
 
 #### Parameters for meshing method: martini
 
 - **defaultMaxError**: The default max triangulation error in meters to use, Default (4)
-- **zoomMaxErrors**: Per level defined max error, when requested zoom for tile not specified use defaultMaxError. Default (`{"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}`)
+- **zoomMaxErrors**: Per level defined max error, when requested zoom for tile is not specified use defaultMaxError. Default when defaultMaxError and zoomMaxError not set (`{"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}`)
 
 #### Example
 
