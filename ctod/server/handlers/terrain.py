@@ -1,4 +1,3 @@
-from asyncio import ensure_future
 from ctod.core import utils
 from fastapi import Response
 from ctod.core.cog.processor.cog_processor import CogProcessor
@@ -25,6 +24,8 @@ from ctod.core.terrain.generator.terrain_generator_quantized_mesh_martini import
 )
 from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
 from morecantile import TileMatrixSet
+
+from ctod.server.queries import QueryParameters
 
 
 class TerrainHandler:
@@ -58,12 +59,7 @@ class TerrainHandler:
         z: int,
         x: int,
         y: int,
-        cog: str,
-        min_zoom: int,
-        resampling_method: str,
-        meshing_method: str,
-        skip_cache: bool,
-        processor_options: dict,
+        qp: QueryParameters,
         extensions: dict,
     ):
         """Handle a terrain request
@@ -75,10 +71,21 @@ class TerrainHandler:
         """
 
         x, y, z = utils.tile_index_from_cesium(tms, int(x), int(y), int(z))
+        cog = qp.get_cog()
+        skip_cache = qp.get_skip_cache()
+        meshing_method = qp.get_meshing_method()
+        resampling_method = qp.get_resampling_method()
+        min_zoom = qp.get_min_zoom()
 
         # Try handling the request from the cache
         if not skip_cache:
-            cached_tile = await self._try_get_cached_tile(cog, meshing_method, z, x, y)
+            cached_tile = await self._try_get_cached_tile(
+                cog,
+                meshing_method,
+                z,
+                x,
+                y,
+            )
             if cached_tile is not None:
                 return Response(
                     content=cached_tile, media_type="application/octet-stream"
@@ -86,10 +93,12 @@ class TerrainHandler:
 
         # Always return an empty tile at 0 or requested zoom level is lower than min_zoom
         if z == 0 or z < min_zoom:
-            empty_tile = await self._return_empty_terrain(tms, cog, meshing_method, z, x, y)
+            empty_tile = await self._return_empty_terrain(
+                tms, cog, meshing_method, z, x, y
+            )
             return Response(content=empty_tile, media_type="application/octet-stream")
 
-        cog_processor = self._get_cog_processor(meshing_method, processor_options)
+        cog_processor = self._get_cog_processor(meshing_method, qp)
         terrain_generator = self._get_terrain_generator(meshing_method)
         terrain_request = TerrainRequest(
             tms,
@@ -131,7 +140,7 @@ class TerrainHandler:
         return terrain_generator()
 
     def _get_cog_processor(
-        self, meshing_method: str, processor_settings: dict
+        self, meshing_method: str, qp: QueryParameters
     ) -> CogProcessor:
         """Get the cog processor based on the meshing method
 
@@ -145,7 +154,7 @@ class TerrainHandler:
         cog_processor = self.cog_processors.get(
             meshing_method, self.cog_processors["default"]
         )
-        return cog_processor(processor_settings)
+        return cog_processor(qp)
 
     async def _return_empty_terrain(
         self, tms: TileMatrixSet, cog: str, meshing_method: str, z: int, x: int, y: int
@@ -161,7 +170,9 @@ class TerrainHandler:
         """
 
         quantized_empty_tile = generate_empty_tile(tms, z, x, y)
-        await self._try_save_tile_to_cache(cog, meshing_method, z, x, y, quantized_empty_tile)
+        await self._try_save_tile_to_cache(
+            cog, meshing_method, z, x, y, quantized_empty_tile
+        )
         return quantized_empty_tile
 
     async def _try_get_cached_tile(
@@ -206,7 +217,9 @@ class TerrainHandler:
         """
 
         if self.tile_cache_path is not None:
-            await save_tile_to_disk(self.tile_cache_path, cog, meshing_method, z, x, y, data)
+            await save_tile_to_disk(
+                self.tile_cache_path, cog, meshing_method, z, x, y, data
+            )
 
     def _write_output(self, output: bytes):
         """Write the output to the response

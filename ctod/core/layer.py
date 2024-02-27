@@ -5,8 +5,10 @@ from ctod.core.utils import get_dataset_type
 from rio_tiler.io import COGReader
 from morecantile import TileMatrixSet
 
+from ctod.server.queries import QueryParameters
 
-def generate_layer_json(tms: TileMatrixSet, file_path: str, max_zoom: int = 20) -> str:
+
+def generate_layer_json(tms: TileMatrixSet, qp: QueryParameters) -> str:
     """Dynamically generate a layer.json for Cesium based on input file.
 
     Args:
@@ -18,16 +20,16 @@ def generate_layer_json(tms: TileMatrixSet, file_path: str, max_zoom: int = 20) 
         str: JSON string of the layer.json
     """
 
-    type = get_dataset_type(file_path)
+    type = get_dataset_type(qp.get_cog())
 
     if type == "mosaic":
-        return _generate_ctod_layer_json(tms, file_path, max_zoom)
+        return _generate_ctod_layer_json(tms, qp)
 
-    return _generate_default_layer_json(tms, file_path, max_zoom)
+    return _generate_default_layer_json(tms, qp)
 
 
 def _generate_default_layer_json(
-    tms: TileMatrixSet, file_path: str, max_zoom: int = 20
+    tms: TileMatrixSet, qp: QueryParameters
 ) -> str:
     """Dynamically generate a layer.json for Cesium based on input file.
 
@@ -40,13 +42,13 @@ def _generate_default_layer_json(
         str: JSON string of the layer.json
     """
 
-    with COGReader(file_path) as src:
+    with COGReader(qp.get_cog()) as src:
         bounds = src.geographic_bounds
-        return _create_json(bounds, tms, file_path, max_zoom)
+        return _create_json(bounds, tms, qp)
 
 
 def _generate_ctod_layer_json(
-    tms: TileMatrixSet, file_path: str, max_zoom: int = 20
+    tms: TileMatrixSet, qp: QueryParameters
 ) -> str:
     """Dynamically generate a layer.json for Cesium based on input file.
 
@@ -59,18 +61,20 @@ def _generate_ctod_layer_json(
         str: JSON string of the layer.json
     """
 
-    if file_path.startswith("http://") or file_path.startswith("https://"):
-        response = requests.get(file_path)
+    cog = qp.get_cog()
+    
+    if cog.startswith("http://") or cog.startswith("https://"):
+        response = requests.get(cog)
         response.raise_for_status()
         datasets_json = response.json()
     else:
-        with open(file_path) as file:
+        with open(cog) as file:
             datasets_json = json.load(file)
 
-    return _create_json(datasets_json["extent"], tms, file_path, max_zoom)
+    return _create_json(datasets_json["extent"], tms, qp)
 
 
-def _create_json(bounds: list, tms: TileMatrixSet, file_path: str, max_zoom: int) -> str:
+def _create_json(bounds: list, tms: TileMatrixSet, qp: QueryParameters) -> str:
     """Create the layer.json
 
     Args:
@@ -89,13 +93,18 @@ def _create_json(bounds: list, tms: TileMatrixSet, file_path: str, max_zoom: int
     available_tiles = [[{"startX": 0, "startY": 0, "endX": 1, "endY": 0}]]
 
     # Generate available tiles for zoom levels 1-20
-    for zoom in range(1, max_zoom + 1):
+    for zoom in range(1, qp.get_max_zoom() + 1):
         start_x, start_y, end_x, end_y = _get_cesium_index_bounds(
             tms, bounds[0], bounds[1], bounds[2], bounds[3], zoom
         )
         available_tiles.append(
             [{"startX": start_x, "startY": start_y, "endX": end_x, "endY": end_y}]
         )
+    
+    # Cesium automatically starts terrain requests after loading layer.json
+    # so we need to pass down the query parameters to the tiles URL
+    tiles_url = "{z}/{x}/{y}.terrain?v={version}"
+    tiles_url = qp.get_query_url(tiles_url)
 
     # Generate the layer.json
     layer_json = {
@@ -107,7 +116,7 @@ def _create_json(bounds: list, tms: TileMatrixSet, file_path: str, max_zoom: int
         "attribution": "",
         "schema": "tms",
         "extensions": ["octvertexnormals"],
-        "tiles": ["{z}/{x}/{y}.terrain?v={version}&cog=" + file_path],
+        "tiles": [tiles_url],
         "projection": "EPSG:4326",
         "bounds": [0.00, -90.00, 180.00, 90.00],
         "cogBounds": bounds,

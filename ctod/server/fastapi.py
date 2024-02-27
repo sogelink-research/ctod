@@ -15,7 +15,6 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 
-
 globals = {}
 current_dir = os.path.dirname(os.path.abspath(__file__))
 path_static_files = os.path.join(current_dir, "../templates/static")
@@ -33,15 +32,15 @@ async def lifespan(app: FastAPI):
     logging_level = get_value(
         args, "logging_level", os.environ.get("CTOD_LOGGING_LEVEL", "info"), "info"
     )
-    factory_cache_ttl = 10
-    
+    factory_cache_ttl = 15
+
     patch_occlusion()
     setup_logging(log_level=getattr(logging, logging_level.upper()))
     log_ctod_start(port, tile_cache_path)
 
     terrain_factory = TerrainFactory(tile_cache_path, factory_cache_ttl)
     await terrain_factory.cache.initialize()
-    
+
     globals["terrain_factory"] = terrain_factory
     globals["terrain_factory"].start_periodic_check()
     globals["cog_reader_pool"] = CogReaderPool(unsafe)
@@ -81,9 +80,32 @@ async def index():
 )
 def layer_json(
     cog: str = queries.query_cog,
+    minZoom: int = queries.query_min_zoom,
     maxZoom: int = queries.query_max_zoom,
+    resamplingMethod: str = queries.query_resampling_method,
+    meshingMethod: str = queries.query_meshing_method,
+    skipCache: bool = queries.query_skip_cache,
+    defaultGridSize: int = queries.query_default_grid_size,
+    zoomGridSizes: str = queries.query_zoom_grid_sizes,
+    defaultMaxError: int = queries.query_default_max_error,
+    zoomMaxErrors: str = queries.query_zoom_max_errors,
+    extensions: str = queries.query_extensions
 ):
-    return get_layer_json(globals["tms"], cog, maxZoom)
+    params = queries.QueryParameters(
+        cog,
+        minZoom,
+        maxZoom,
+        resamplingMethod,
+        meshingMethod,
+        skipCache,
+        defaultGridSize,
+        zoomGridSizes,
+        defaultMaxError,
+        zoomMaxErrors,
+        extensions
+    )
+
+    return get_layer_json(globals["tms"], params)
 
 
 @app.get(
@@ -100,20 +122,30 @@ async def terrain(
     cog: str = queries.query_cog,
     minZoom: int = queries.query_min_zoom,
     resamplingMethod: str = queries.query_resampling_method,
-    meshingmethod: str = queries.query_meshing_method,
+    meshingMethod: str = queries.query_meshing_method,
     skipCache: bool = queries.query_skip_cache,
     defaultGridSize: int = queries.query_default_grid_size,
     zoomGridSizes: str = queries.query_zoom_grid_sizes,
     defaultMaxError: int = queries.query_default_max_error,
     zoomMaxErrors: str = queries.query_zoom_max_errors,
+    extensions: str = queries.query_extensions,
 ):
-    extensions = get_extensions(request)
-    processor_options = {
-        "defaultGridSize": defaultGridSize,
-        "zoomGridSizes": zoomGridSizes,
-        "defaultMaxError": defaultMaxError,
-        "zoomMaxErrors": zoomMaxErrors,
-    }
+    params = queries.QueryParameters(
+        cog,
+        minZoom,
+        None,
+        resamplingMethod,
+        meshingMethod,
+        skipCache,
+        defaultGridSize,
+        zoomGridSizes,
+        defaultMaxError,
+        zoomMaxErrors,
+        extensions
+    )
+
+    use_extensions = get_extensions(extensions, request)
+
     th = TerrainHandler(
         terrain_factory=globals["terrain_factory"],
         cog_reader_pool=globals["cog_reader_pool"],
@@ -125,11 +157,6 @@ async def terrain(
         z,
         x,
         y,
-        cog,
-        minZoom,
-        resamplingMethod,
-        meshingmethod,
-        skipCache,
-        processor_options,
-        extensions,
+        params,
+        use_extensions,
     )

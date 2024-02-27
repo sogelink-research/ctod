@@ -1,24 +1,30 @@
 from fastapi import Request
 
 
-def get_extensions(request: Request) -> str:
+def get_extensions(extensions: str, request: Request) -> str:
     """Get the accept header from the request
 
+    Args:
+        extensions (str): Extensions supplied trough query parameters
+        request (Request): The request
     Returns:
         str: The accept header. Defaults to image/png
     """
 
-    extensions = check_extensions(
-        request, ["octvertexnormals", "watermask", "metadata"]
+    enabled_extensions = check_extensions(
+        extensions, request, ["octvertexnormals", "watermask", "metadata"]
     )
 
-    return extensions
+    return enabled_extensions
 
 
-def check_extensions(request: Request, extensions_to_check: list) -> dict:
-    """Check the extensions in the accept header
+def check_extensions(
+    extensions: str, request: Request, extensions_to_check: list
+) -> dict:
+    """Check the extensions in the accept header or query parameters
 
     Args:
+        extensions (str): Extensions supplied trough query parameters
         extensions_to_check (list): list of extensions to check
 
     Returns:
@@ -39,5 +45,10 @@ def check_extensions(request: Request, extensions_to_check: list) -> dict:
                     extension = part.split("=")[1]
                     if extension in extensions_to_check:
                         found_extensions[extension] = True
+
+    query_extensions = extensions.split("-") if extensions else []
+    for extension in query_extensions:
+        if extension in extensions_to_check:
+            found_extensions[extension] = True
 
     return found_extensions

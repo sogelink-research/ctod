@@ -5,6 +5,7 @@ import numpy as np
 from ctod.core.cog.cog_request import CogRequest
 from ctod.core.cog.processor.cog_processor import CogProcessor
 from numpy import float32
+from ctod.server.queries import QueryParameters
 from pymartini import Martini
 from quantized_mesh_encoder.constants import WGS84
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
@@ -16,10 +17,10 @@ class CogProcessorQuantizedMeshMartini(CogProcessor):
     Not working currently, really slow and no shared vertices and normal averaging yet
     """
     
-    def __init__(self, settings: dict):
+    def __init__(self, qp: QueryParameters):
         super().__init__()
         self.ellipsoid: Ellipsoid = WGS84
-        self._load_settings(settings)
+        self._load_settings(qp)
         
     def get_reader_kwargs(self):
         return { "buffer": 0.5 }
@@ -61,17 +62,17 @@ class CogProcessorQuantizedMeshMartini(CogProcessor):
         
         return (new_vertices, triangles, None)
     
-    def _load_settings(self, settings: dict):
+    def _load_settings(self, qp: QueryParameters):
         """Parse the config
 
         Args:
-            config (dict): The config
+            qp (QueryParameters): The query parameters
         """
         
-        self.default_max_error = settings["defaultMaxError"]
-        self.zoom_max_error = {"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}
-        
-        zoom_errors_string = settings["zoomMaxErrors"]
+        self.default_max_error = qp.get_default_max_error()   
+        self.zoom_max_error = []
+        zoom_errors_string = qp.get_zoom_max_errors()
+
         if zoom_errors_string:
             try:
                 self.zoom_max_error = json.loads(zoom_errors_string)

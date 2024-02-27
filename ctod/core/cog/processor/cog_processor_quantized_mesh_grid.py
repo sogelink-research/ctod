@@ -7,6 +7,7 @@ from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.cog.processor.grid import generate_grid
 from ctod.core.normals import calculate_normals
 from ctod.core.utils import rescale_positions
+from ctod.server.queries import QueryParameters
 from quantized_mesh_encoder.constants import WGS84
 from quantized_mesh_encoder.ecef import to_ecef
 from quantized_mesh_encoder.ellipsoid import Ellipsoid
@@ -22,11 +23,11 @@ class CogProcessorQuantizedMeshGrid(CogProcessor):
     ToDo: Grids can be stored in a cache, however generating a grid takes 0.7ms on average
     """
 
-    def __init__(self, settings: dict):
+    def __init__(self, qp: QueryParameters):
         super().__init__()
         self.grid_wh = 255
         self.ellipsoid: Ellipsoid = WGS84
-        self._load_settings(settings)
+        self._load_settings(qp)
     
     def get_name(self) -> str:
         return "grid"
@@ -60,17 +61,18 @@ class CogProcessorQuantizedMeshGrid(CogProcessor):
 
         return (vertices2d_new, triangles_new, normals)
 
-    def _load_settings(self, settings: dict):
+    def _load_settings(self, qp: QueryParameters):
         """Parse the config
 
         Args:
-            config (dict): The config
+            qp (QueryParameters): The query parameters
         """
         
-        self.default_grid_size = settings["defaultGridSize"]
-        self.zoom_grid_sizes = {"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35}
         
-        zoomGridSizesString = settings["zoomGridSizes"]
+        self.default_grid_size = qp.get_default_grid_size()
+        self.zoom_grid_sizes = []
+        
+        zoomGridSizesString = qp.get_zoom_grid_sizes()
         if zoomGridSizesString:
             try:
                 self.zoom_grid_sizes = json.loads(zoomGridSizesString)
