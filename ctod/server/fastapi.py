@@ -32,13 +32,16 @@ async def lifespan(app: FastAPI):
     logging_level = get_value(
         args, "logging_level", os.environ.get("CTOD_LOGGING_LEVEL", "info"), "info"
     )
+    db_name = get_value(
+        args, "db_name", os.environ.get("CTOD_DB_NAME", "factory_cache.db"), "factory_cache.db"
+    )
     factory_cache_ttl = 15
-
+    
     patch_occlusion()
     setup_logging(log_level=getattr(logging, logging_level.upper()))
     log_ctod_start(port, tile_cache_path)
 
-    terrain_factory = TerrainFactory(tile_cache_path, factory_cache_ttl)
+    terrain_factory = TerrainFactory(tile_cache_path, db_name, factory_cache_ttl)
     await terrain_factory.cache.initialize()
 
     globals["terrain_factory"] = terrain_factory

@@ -241,12 +241,14 @@ async def run(parser: argparse.ArgumentParser):
         request_count = int(args.request_count)
         zoom_levels = list(map(int, args.zoom_levels.split("-")))
 
-        # Clear all arguments except the script name
+        # Clear all arguments
         sys.argv = []
 
+        os.environ["CTOD_PORT"] = str(port)
         os.environ["CTOD_UNSAFE"] = "false"
         os.environ["CTOD_LOGGING_LEVEL"] = "info"
         os.environ["WORKERS_PER_CORE"] = "1"
+        os.environ["CTOD_DB_NAME"] = "seed_cache.db"
 
         tms = utils.get_tms()
         config = Config(

@@ -19,12 +19,12 @@ class TerrainFactory:
     TerrainFactory checks if TerrainRequest are ready for precessing and if so, processes them.
     """
 
-    def __init__(self, cache_path: str, cache_ttl: int = 30):
+    def __init__(self, cache_path: str, db_name: str, cache_ttl: int = 30):
         self.open_requests = set()
         self.terrain_requests = {}
         self.processing_queue = asyncio.Queue()
         self.lock = asyncio.Lock()
-        self.cache = FactoryCache(cache_path, False, ttl=cache_ttl)
+        self.cache = FactoryCache(cache_path, db_name, False, ttl=cache_ttl)
         self.pid = psutil.Process().pid
         self.executor = None
         self.cache.on_cache_change(self.cache_changed)

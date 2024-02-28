@@ -24,11 +24,13 @@ class FactoryCache:
     instead of running only a single worker.
     """
 
-    def __init__(self, cache_path: str, in_memory: bool = False, ttl: int = 30):
+    def __init__(self, cache_path: str, db_name: str = "factory_cache.db", in_memory: bool = False, ttl: int = 30):
         """
         Initialize the FactoryCache object.
 
         Args:
+            cache_path (str): The path to the cache database file.
+            db_name (str, optional): The name of the cache database file. Defaults to "factory_cache.db".
             in_memory (bool, optional): Whether to use an in-memory database. Defaults to False.
             ttl (int, optional): The time-to-live (in seconds) for cached items. Defaults to 60.
             pool_size (int, optional): The size of the connection pool. Defaults to 5.
@@ -36,9 +38,9 @@ class FactoryCache:
 
         self.ttl = ttl
         self.db_name = (
-            f"{cache_path}/factory_cache.db"
+            f"{cache_path}/{db_name}"
             if cache_path is not None and not in_memory
-            else "factory_cache.db" if not in_memory else ":memory:"
+            else db_name if not in_memory else ":memory:"
         )
         self.ee = AsyncIOEventEmitter()
         self.keys = []
