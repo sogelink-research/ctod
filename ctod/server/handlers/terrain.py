@@ -133,7 +133,7 @@ class TerrainHandler:
         #else:
         #    headers = {}
 
-        return Response(content=quantized, media_type="application/octet-stream", headers=headers)
+        return Response(content=quantized, media_type="application/octet-stream")
 
     def _get_terrain_generator(self, meshing_method: str) -> TerrainGenerator:
         """Get the terrain generator based on the meshing method

@@ -14,6 +14,8 @@ from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
 from morecantile import TileMatrixSet
 from uvicorn import Config, Server
 
+from ctod.server.queries import QueryParameters
+
 
 def setup_logging(log_level=logging.INFO):
     logging.basicConfig(
@@ -24,14 +26,18 @@ def setup_logging(log_level=logging.INFO):
 
 
 def get_layer_json(tms: TileMatrixSet, filepath: str, max_zoom: int = 22) -> dict:
-    json_string = generate_layer_json(tms, filepath, max_zoom)
+    qp = QueryParameters(cog=filepath, maxZoom=max_zoom)
+    json_string = generate_layer_json(tms, qp)
     return json_string
 
 
 def create_cache_folder(filepath: str):
     if not os.path.exists(filepath):
-        os.makedirs(filepath)
-
+        try:
+            os.makedirs(filepath)
+        except Exception as e:
+            logging.error(f"Failed to create cache folder: {e}")
+            sys.exit(1)
 
 def get_tile_range(layer_json: dict, zoom: int):
     available = layer_json["available"]
@@ -53,7 +59,9 @@ async def seed_cache(
     request_count: int,
 ):
     create_cache_folder(output_filepath)
+    logging.info(f"Starting to get layer.json")
     layer_json = get_layer_json(tms, input_filepath)
+    logging.info(f"Finished getting layer.json")
 
     for zoom in zoom_levels:
         if server.should_exit:  # Check if the server has been stopped
@@ -232,7 +240,7 @@ async def run(parser: argparse.ArgumentParser):
         port = int(args.port)
         request_count = int(args.request_count)
         zoom_levels = list(map(int, args.zoom_levels.split("-")))
-    
+
         # Clear all arguments except the script name
         sys.argv = []
 
@@ -256,6 +264,7 @@ async def run(parser: argparse.ArgumentParser):
         await asyncio.sleep(2)
 
         done_future = Future()
+
         seed_cache_task = asyncio.create_task(
             seed_cache(
                 server,

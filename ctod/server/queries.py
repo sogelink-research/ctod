@@ -73,17 +73,17 @@ class QueryParameters:
 
     def __init__(
         self,
-        cog: str,
-        minZoom: int,
-        maxZoom: int,
-        resamplingMethod: str,
-        meshingMethod: str,
-        skipCache: bool,
-        defaultGridSize: int,
-        zoomGridSizes: str,
-        defaultMaxError: int,
-        zoomMaxErrors: str,
-        extensions: str,
+        cog: str = None,
+        minZoom: int = None,
+        maxZoom: int = None,
+        resamplingMethod: str = None,
+        meshingMethod: str = None,
+        skipCache: bool = None,
+        defaultGridSize: int = None,
+        zoomGridSizes: str = None,
+        defaultMaxError: int = None,
+        zoomMaxErrors: str = None,
+        extensions: str = None,
     ):
         self.cog = cog
         self.minZoom = minZoom
