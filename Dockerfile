@@ -12,6 +12,7 @@ ENV VSI_CACHE=TRUE
 
 COPY pyproject.toml poetry.lock /app/
 COPY ./ctod /app/ctod/
+COPY ./scripts /app/scripts/
 COPY start_server.py /app/
 
 RUN apt-get update \

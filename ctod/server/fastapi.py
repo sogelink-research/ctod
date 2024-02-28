@@ -153,6 +153,7 @@ async def terrain(
     )
 
     return await th.get(
+        request,
         globals["tms"],
         z,
         x,

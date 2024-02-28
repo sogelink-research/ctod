@@ -1,5 +1,7 @@
+import gzip
+
 from ctod.core import utils
-from fastapi import Response
+from fastapi import Request, Response
 from ctod.core.cog.processor.cog_processor import CogProcessor
 from ctod.core.cog.processor.cog_processor_quantized_mesh_grid import (
     CogProcessorQuantizedMeshGrid,
@@ -55,6 +57,7 @@ class TerrainHandler:
 
     async def get(
         self,
+        request: Request,
         tms,
         z: int,
         x: int,
@@ -121,8 +124,16 @@ class TerrainHandler:
         del terrain_generator
         del cog_processor
         del terrain_request
+        
+        # ToDo: Add support for gzip
+        # makes a bit of difference in size but is slower
+        #if 'gzip' in request.headers.get('Accept-Encoding', ''):
+        #    quantized = gzip.compress(quantized)
+        #    headers = {"Content-Encoding": "gzip"}
+        #else:
+        #    headers = {}
 
-        return Response(content=quantized, media_type="application/octet-stream")
+        return Response(content=quantized, media_type="application/octet-stream", headers=headers)
 
     def _get_terrain_generator(self, meshing_method: str) -> TerrainGenerator:
         """Get the terrain generator based on the meshing method
@@ -221,13 +232,3 @@ class TerrainHandler:
                 self.tile_cache_path, cog, meshing_method, z, x, y, data
             )
 
-    def _write_output(self, output: bytes):
-        """Write the output to the response
-
-        Args:
-            output (bytes): The output to write to the response
-        """
-
-        self.set_header("Content-Type", "application/octet-stream")
-        self.write(output)
-        self.finish()
