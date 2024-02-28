@@ -297,7 +297,8 @@ async def run(parser: argparse.ArgumentParser):
         await clear_tasks()
 
     finally:
-        loop.stop()
+        if loop:
+            loop.stop()
 
 def main():
     setup_logging()
