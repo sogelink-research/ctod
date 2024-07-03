@@ -39,7 +39,7 @@ ghcr.io/sogelink-research/ctod:latest
 - [Meshing methods](https://github.com/sogelink-research/ctod/wiki/Meshing-methods)
 - [Tile stitching](https://github.com/sogelink-research/ctod/wiki/Tile-stitching)
 - [COG Optimization](https://github.com/sogelink-research/ctod/wiki/COG-Optimization) ToDo
-- [Seeding the cache](https://github.com/sogelink-research/ctod/wiki/Seeding-the-cache) ToDo
+- [Seeding the cache](https://github.com/sogelink-research/ctod/wiki/Seeding-the-cache)
 - [VRT and Mosaic](https://github.com/sogelink-research/ctod/wiki/VRT-and-Mosaic) ToDo
 
 ## Example result in Cesium

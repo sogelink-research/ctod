@@ -10,11 +10,12 @@ import logging
 from concurrent.futures import Future
 from ctod.core import utils
 from ctod.core.layer import generate_layer_json
-from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk
+from ctod.core.tile_cache import get_tile_from_disk, save_tile_to_disk, get_root_folder
 from morecantile import TileMatrixSet
 from uvicorn import Config, Server
 
 from ctod.server.queries import QueryParameters
+import json
 
 
 def setup_logging(log_level=logging.INFO):
@@ -57,10 +58,15 @@ async def seed_cache(
     done_future: Future,
     port: int,
     request_count: int,
+    layer_json_max_zoom: int
 ):
     create_cache_folder(output_filepath)
     logging.info(f"Starting to get layer.json")
     layer_json = get_layer_json(tms, input_filepath)
+    
+    if layer_json_max_zoom:
+        save_layer_json(output_filepath, input_filepath, meshing_method, layer_json_max_zoom, layer_json)
+        
     logging.info(f"Finished getting layer.json")
 
     for zoom in zoom_levels:
@@ -83,6 +89,21 @@ async def seed_cache(
     logging.info(f"Finished seeding cache, stopping...")
     done_future.set_result(None)
 
+def save_layer_json(output_filepath: str, file, meshing_method, layer_json_max_zoom, layer_json: dict):
+    """Write a layer.json file that can be used to host the cache using a web server."""
+    
+    json_copy = layer_json.copy()
+    json_copy["tiles"] = ["{z}/{x}/{y}.terrain"]
+    root_folder = get_root_folder(output_filepath, file, meshing_method)
+    json_copy["available"] = json_copy["available"][:layer_json_max_zoom + 1]
+    
+    try:
+        with open(os.path.join(root_folder, "layer.json"), "w") as f:
+            json.dump(json_copy, f)
+    except Exception as e:
+        logging.error(f"An error occurred saving layer.json: {e}")
+    finally:
+        logging.debug("Exiting save_layer_json")
 
 def interleave_bits(x, y):
     """Interleave the bits of x and y. This is a key part of generating the Z-order curve."""
@@ -114,8 +135,6 @@ async def generate_level(
     request_count: int,
 ):
     tile_range = get_tile_range(layer_json, zoom)
-    tms_y_max = tms.minmax(zoom)["y"]["max"]
-
     x_range = range(tile_range[0], tile_range[1] + 1)
     y_range = range(tile_range[2], tile_range[3] + 1)
     morton_order = generate_z_order_grid(x_range, y_range)
@@ -137,7 +156,7 @@ async def generate_level(
             generate_tile(
                 input_filepath,
                 output_filepath,
-                tms_y_max,
+                tms,
                 x,
                 y,
                 zoom,
@@ -182,7 +201,7 @@ async def generate_level(
 async def generate_tile(
     input_filepath: str,
     output_filepath: str,
-    tms_y_max: int,
+    tms,
     x: int,
     y: int,
     z: int,
@@ -195,7 +214,7 @@ async def generate_tile(
     # If overwrite is false, skip generating and caching the tile
     if not overwrite:
         cached_tile = await get_tile_from_disk(
-            output_filepath, input_filepath, meshing_method, z, x, y
+            output_filepath, input_filepath, tms, meshing_method, z, x, y
         )
         if cached_tile is not None:
             return
@@ -210,14 +229,15 @@ async def generate_tile(
             try:
                 if response.status == 200:
                     tile_data = await response.read()
-                    y = tms_y_max - y
+                    ix, iy, iz = utils.invert_y(tms, x, y, z)
                     await save_tile_to_disk(
                         output_filepath,
                         input_filepath,
+                        tms,
                         meshing_method,
-                        z,
-                        x,
-                        y,
+                        iz,
+                        ix,
+                        iy,
                         tile_data,
                     )
                 else:
@@ -240,6 +260,7 @@ async def run(parser: argparse.ArgumentParser):
         port = int(args.port)
         request_count = int(args.request_count)
         zoom_levels = list(map(int, args.zoom_levels.split("-")))
+        layer_json_max_zoom = int(args.export_layer_json) if args.export_layer_json else None
 
         # Clear all arguments
         sys.argv = []
@@ -280,6 +301,7 @@ async def run(parser: argparse.ArgumentParser):
                 done_future,
                 port,
                 request_count,
+                layer_json_max_zoom
             )
         )
 
@@ -360,6 +382,13 @@ def main():
         "--overwrite",
         action="store_true",
         help="Add --overwrite to overwrite existing tiles in the cache. Defaults to False.",
+    )
+    parser.add_argument(
+        "--export-layer-json",
+        metavar="export_layer_json",
+        required=False,
+        default=None,
+        help="Add --export-layer-json followed by the max zoom level to create a layer.json in the root directory.",
     )
 
     asyncio.run(run(parser))

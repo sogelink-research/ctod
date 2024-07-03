@@ -41,7 +41,7 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def tile_index_from_cesium(
+def invert_y(
     tms: TileMatrixSet, x: int, y: int, z: int
 ) -> tuple[int, int, int]:
     """
@@ -52,7 +52,6 @@ def tile_index_from_cesium(
     tms_y_max = tms.minmax(z)["y"]["max"]
     y = tms_y_max - y
     return x, y, z
-
 
 def get_tile_bounds(tms: TileMatrixSet, x: int, y: int, z: int) -> BoundingBox:
     """

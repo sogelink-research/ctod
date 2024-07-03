@@ -73,7 +73,7 @@ class TerrainHandler:
             y (int): y tile index
         """
 
-        x, y, z = utils.tile_index_from_cesium(tms, int(x), int(y), int(z))
+        x, y, z = utils.invert_y(tms, int(x), int(y), int(z))
         cog = qp.get_cog()
         skip_cache = qp.get_skip_cache()
         meshing_method = qp.get_meshing_method()
@@ -84,6 +84,7 @@ class TerrainHandler:
         if not skip_cache:
             cached_tile = await self._try_get_cached_tile(
                 cog,
+                tms,
                 meshing_method,
                 z,
                 x,
@@ -119,7 +120,7 @@ class TerrainHandler:
             tms, terrain_request, self.cog_reader_pool, cog_processor
         )
 
-        await self._try_save_tile_to_cache(cog, meshing_method, z, x, y, quantized)
+        await self._try_save_tile_to_cache(cog, tms, meshing_method, z, x, y, quantized)
 
         del terrain_generator
         del cog_processor
@@ -182,12 +183,12 @@ class TerrainHandler:
 
         quantized_empty_tile = generate_empty_tile(tms, z, x, y)
         await self._try_save_tile_to_cache(
-            cog, meshing_method, z, x, y, quantized_empty_tile
+            cog, tms, meshing_method, z, x, y, quantized_empty_tile
         )
         return quantized_empty_tile
 
     async def _try_get_cached_tile(
-        self, cog: str, meshing_method: str, z: int, x: int, y: int
+        self, cog: str, tms: TileMatrixSet, meshing_method: str, z: int, x: int, y: int
     ) -> bool:
         """Try handling the request from the cache if the path is set
 
@@ -205,7 +206,7 @@ class TerrainHandler:
 
         if self.tile_cache_path is not None:
             cached_tile = await get_tile_from_disk(
-                self.tile_cache_path, cog, meshing_method, z, x, y
+                self.tile_cache_path, cog, tms, meshing_method, z, x, y
             )
             if cached_tile is not None:
                 return cached_tile
@@ -213,12 +214,13 @@ class TerrainHandler:
         return None
 
     async def _try_save_tile_to_cache(
-        self, cog: str, meshing_method: str, z: int, x: int, y: int, data: bytes
+        self, cog: str, tms: TileMatrixSet, meshing_method: str, z: int, x: int, y: int, data: bytes
     ):
         """Try saving the tile to the cache if the path is set
 
         Args:
             cog (str): Path or url to cog file
+            tms (TileMatrixSet): The tile matrix set
             meshing_method (str): The meshing method to use
             resampling_method (str): the resampling method used
             z (int): z tile index
@@ -229,6 +231,6 @@ class TerrainHandler:
 
         if self.tile_cache_path is not None:
             await save_tile_to_disk(
-                self.tile_cache_path, cog, meshing_method, z, x, y, data
+                self.tile_cache_path, cog, tms, meshing_method, z, x, y, data
             )
 
