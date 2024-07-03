@@ -84,11 +84,16 @@ class TerrainRequest:
         Returns:
             CogRequest: The CogRequest for the given key
         """
+        import logging
+
+        logging.basicConfig(level=logging.DEBUG)
 
         for wanted_file in self.wanted_files:
             if wanted_file.key == key:
+                logging.debug(f"Found file for key: {key}")
                 return wanted_file
 
+        logging.error(f"File not found for key: {key}")
         return None
 
     def get_wanted_file_keys(self) -> list:
@@ -117,12 +122,18 @@ class TerrainRequest:
 
     async def process(self):
         """Start processing the terrain tile"""
+        import logging
+
+        logging.basicConfig(level=logging.DEBUG)
+
         if self.processing or self.result_set:
             return
 
         self.processing = True
+        logging.debug(f"Processing started for tile: z={self.z}, x={self.x}, y={self.y}")
         result = self.terrain_generator.generate(self)
         self.set_result(result)
+        logging.debug(f"Processing completed for tile: z={self.z}, x={self.x}, y={self.y}")
         self.processing = False
 
     def set_timed_out(self):
@@ -161,9 +172,13 @@ class TerrainRequest:
 
     def _generate_wanted_files(self):
         """Generate the wanted files for this TerrainRequest
-        which are the adjecent tiles and the main tile
+        which are the adjacent tiles and the main tile
         """
+        import logging
 
+        logging.basicConfig(level=logging.DEBUG)
+        
+        # Add the main tile
         self.wanted_files.append(
             CogRequest(
                 self.tms,
@@ -177,7 +192,9 @@ class TerrainRequest:
                 self.generate_normals,
             )
         )
+        logging.debug(f"Added main tile: z={self.z}, x={self.x}, y={self.y}")
 
+        # Add neighbor tiles
         neighbour_tiles = get_neighbor_tiles(self.tms, self.x, self.y, self.z)
         for tile in neighbour_tiles:
             self.wanted_files.append(
@@ -193,3 +210,23 @@ class TerrainRequest:
                     self.generate_normals,
                 )
             )
+            logging.debug(f"Added neighbor tile: z={tile.z}, x={tile.x}, y={tile.y}")
+
+        # Ensure level 0 tiles are included
+        if self.z == 0:
+            for x in range(2):
+                for y in range(1):
+                    self.wanted_files.append(
+                        CogRequest(
+                            self.tms,
+                            self.cog,
+                            0,
+                            x,
+                            y,
+                            self.cog_processor,
+                            self.cog_reader_pool,
+                            self.resampling_method,
+                            self.generate_normals,
+                        )
+                    )
+                    logging.debug(f"Added level 0 tile: z=0, x={x}, y={y}")
