@@ -20,16 +20,6 @@ const SlopeRampColorParams = {
   Color6: "rgba(0, 0, 0, 0.5)",
 };
 
-function getHillShadingSlopeRamp() {
-  return Object.keys(SlopeRampParams).map((key) => SlopeRampParams[key]);
-}
-
-function getHillShadingSlopeRampColors() {
-  return Object.keys(SlopeRampColorParams).map(
-    (key) => SlopeRampColorParams[key]
-  );
-}
-
 function disableShading() {
   viewer.scene.globe.material = undefined;
   updateViewer();
@@ -40,18 +30,15 @@ function setShading() {
     return;
   }
 
-  const globe = viewer.scene.globe;
-  var material = getSlopeMaterial();
-  const shadingUniforms = material.uniforms;
-  shadingUniforms.image = getSlopeColorRamp();
-
-  globe.material = material;
+  const material = Cesium.Material.fromType("SlopeRamp");
+  material.uniforms.image = getSlopeColorRamp();
+  viewer.scene.globe.material = material;
   updateViewer();
 }
 
 function getSlopeColorRamp() {
-  const values = getHillShadingSlopeRamp();
-  const colors = getHillShadingSlopeRampColors();
+  const values = Object.values(SlopeRampParams).map((value) => parseFloat(value));
+  const colors = Object.values(SlopeRampColorParams);
   return createColorRamp(values, colors);
 }
 
@@ -70,8 +57,4 @@ function createColorRamp(values, colors) {
   ctx.fillRect(0, 0, 100, 1);
 
   return ramp;
-}
-
-function getSlopeMaterial() {
-  return Cesium.Material.fromType("SlopeRamp");
 }
