@@ -1,0 +1,16 @@
+{
+    "datasets": [
+        {
+            "name": "demo",
+            "options": {
+                "cog": "./ctod/files/test_cog.tif",
+                "minZoom": 13,
+                "maxZoom": 17,
+                "noData": 0,
+                "meshingMethod": "grid",
+                "skipCache": false,
+                "zoomGridSizes": {"13": 5, "14": 10, "15": 10, "16": 15, "17": 20, "18": 25, "19": 30}
+            }
+        }
+    ]
+}

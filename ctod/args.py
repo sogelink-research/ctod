@@ -1,9 +1,12 @@
 import argparse
 
+
 def parse_args():
     try:
         parser = argparse.ArgumentParser(description="CTOD Application")
         parser.add_argument("--tile-cache-path", help="Path to the tile cache")
+        parser.add_argument("--dataset-config-path",
+                            help="Path to the dataset config, default ./config/datasets.json")
         parser.add_argument(
             "--logging-level",
             choices=["debug", "info", "warning", "error", "critical"],
@@ -23,11 +26,15 @@ def parse_args():
             action="store_true",
             help="When unsafe all tiles will be loaded, even if there are not enough overviews",
         )
+        parser.add_argument(
+            "--no-dynamic",
+            action="store_true",
+            help="Disable the endpoints for dynamic terrain based on query parameters",
+        )
 
         return parser.parse_args()
     except:
         return None
-        
 
 
 def get_value(args, option, environment, default):
