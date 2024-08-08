@@ -1510,13 +1510,13 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "rio-tiler"
-version = "6.4.1"
+version = "6.6.1"
 description = "User friendly Rasterio plugin to read raster datasets."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "rio_tiler-6.4.1-py3-none-any.whl", hash = "sha256:21e510b9076417cefca58a7be2a2f033202b1226911218a471951c0958c2c567"},
-    {file = "rio_tiler-6.4.1.tar.gz", hash = "sha256:ff1425ad9924820f4e767a2b9903b9fc1fa08a00670f79d9618a8090e39c51bc"},
+    {file = "rio_tiler-6.6.1-py3-none-any.whl", hash = "sha256:4613964ff824a3cb14b6033746f0e8c936c0e1f119dff54cf841528f24285412"},
+    {file = "rio_tiler-6.6.1.tar.gz", hash = "sha256:75ce0fc3011cb8c7ee282b19807e7e7e9042da65a18a922d04c8bba9f3b65ce2"},
 ]
 
 [package.dependencies]
@@ -2030,4 +2030,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "1389e63c1fdca102f7d9f9e0a5e2a7a3c0aec8be35b5b28fadf715c555a96652"
+content-hash = "8a92fb4e81b7dc6179d39ef29a9a6fc156fcbc1a8a90e8b7876bea20b0c38b91"
