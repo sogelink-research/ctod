@@ -11,7 +11,7 @@ from quantized_mesh_encoder.ellipsoid import Ellipsoid
 
 class TerrainGeneratorQuantizedMeshDelatin(TerrainGenerator):
     """A TerrainGenerator for a delatin based mesh."""
-    
+
     def __init__(self):
         self.ellipsoid: Ellipsoid = WGS84
 
@@ -24,15 +24,18 @@ class TerrainGeneratorQuantizedMeshDelatin(TerrainGenerator):
         Returns:
             quantized_mesh (bytes): The generated quantized mesh
         """
-        
+
         main_cog = terrain_request.get_main_file()
-        
+
         if main_cog is None or main_cog.data is None or main_cog.is_out_of_bounds:
             logging.debug("main_cog.processed_data is None")
-            quantized_empty_tile = generate_empty_tile(main_cog.tms, main_cog.z, main_cog.x, main_cog.y)
+            quantized_empty_tile = generate_empty_tile(
+                main_cog.tms, main_cog.z, main_cog.x, main_cog.y, main_cog.no_data)
             return quantized_empty_tile
-                                   
-        rescaled_vertices = rescale_positions(main_cog.processed_data[0], main_cog.tile_bounds, flip_y=False)
-        quantized = quantize(rescaled_vertices, main_cog.processed_data[1], main_cog.processed_data[2])
-        
+
+        rescaled_vertices = rescale_positions(
+            main_cog.processed_data[0], main_cog.tile_bounds, flip_y=False)
+        quantized = quantize(
+            rescaled_vertices, main_cog.processed_data[1], main_cog.processed_data[2])
+
         return quantized

@@ -24,6 +24,7 @@ class TerrainRequest:
         z: int,
         x: int,
         y: int,
+        no_data: int,
         resampling_method: str,
         cog_processor: CogProcessor,
         terrain_generator: TerrainGenerator,
@@ -35,6 +36,7 @@ class TerrainRequest:
         self.z = z
         self.x = x
         self.y = y
+        self.no_data = no_data,
         self.resampling_method = resampling_method
         self.cog_processor = cog_processor
         self.terrain_generator = terrain_generator
@@ -43,7 +45,8 @@ class TerrainRequest:
         self.wanted_files = []
         self._generate_wanted_files()
         self.key = generate_uuid()
-        self.main_file_key = generate_cog_cache_key(self.cog, self.cog_processor.get_name(), self.z, self.x, self.y)
+        self.main_file_key = generate_cog_cache_key(
+            self.cog, self.cog_processor.get_name(), self.z, self.x, self.y)
         self.wanted_file_keys = self.get_wanted_file_keys()
         self.processing = False
         self.future = asyncio.Future()
@@ -173,6 +176,7 @@ class TerrainRequest:
                 self.y,
                 self.cog_processor,
                 self.cog_reader_pool,
+                self.no_data,
                 self.resampling_method,
                 self.generate_normals,
             )
@@ -189,6 +193,7 @@ class TerrainRequest:
                     tile.y,
                     self.cog_processor,
                     self.cog_reader_pool,
+                    self.no_data,
                     self.resampling_method,
                     self.generate_normals,
                 )

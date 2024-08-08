@@ -65,6 +65,12 @@ query_extensions = Query(
     description="Normally supplied trough Accept header but can be set and overridden here, by multiple extensions user separator '-' (octvertexnormals-watermask) Currently only octvertexnormals is supported",
 )
 
+query_no_data = Query(
+    None,
+    title="No Data",
+    description="No data value for the COG, Default (0)"
+)
+
 
 class QueryParameters:
     """
@@ -84,6 +90,7 @@ class QueryParameters:
         defaultMaxError: int = None,
         zoomMaxErrors: str = None,
         extensions: str = None,
+        noData: int = None,
     ):
         self.cog = cog
         self.minZoom = minZoom
@@ -96,6 +103,7 @@ class QueryParameters:
         self.defaultMaxError = defaultMaxError
         self.zoomMaxErrors = zoomMaxErrors
         self.extensions = extensions
+        self.nodata = noData
 
     def get_cog(self) -> str:
         """Returns the cog if it's not None, otherwise returns a default value"""
@@ -121,6 +129,11 @@ class QueryParameters:
         """Returns the meshingMethod if it's not None, otherwise returns a default value"""
 
         return self.meshingMethod if self.meshingMethod is not None else "grid"
+
+    def get_no_data(self) -> int:
+        """Returns the nodata if it's not None, otherwise returns a default value"""
+
+        return self.nodata if self.nodata is not None else 0
 
     def get_skip_cache(self) -> bool:
         """Returns the skipCache if it's not None, otherwise returns a default value"""

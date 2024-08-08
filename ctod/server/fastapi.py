@@ -24,24 +24,30 @@ path_template_files = os.path.join(current_dir, "../templates")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     args = parse_args()
-    unsafe = get_value(args, "unsafe", os.environ.get("CTOD_UNSAFE", False), False)
+    unsafe = get_value(args, "unsafe", os.environ.get(
+        "CTOD_UNSAFE", False), False)
     tile_cache_path = get_value(
-        args, "tile_cache_path", os.environ.get("CTOD_TILE_CACHE_PATH", None), None
+        args, "tile_cache_path", os.environ.get(
+            "CTOD_TILE_CACHE_PATH", None), None
     )
-    port = get_value(args, "port", int(os.environ.get("CTOD_PORT", 5000)), 5000)
+    port = get_value(args, "port", int(
+        os.environ.get("CTOD_PORT", 5000)), 5000)
     logging_level = get_value(
-        args, "logging_level", os.environ.get("CTOD_LOGGING_LEVEL", "info"), "info"
+        args, "logging_level", os.environ.get(
+            "CTOD_LOGGING_LEVEL", "info"), "info"
     )
     db_name = get_value(
-        args, "db_name", os.environ.get("CTOD_DB_NAME", "factory_cache.db"), "factory_cache.db"
+        args, "db_name", os.environ.get(
+            "CTOD_DB_NAME", "factory_cache.db"), "factory_cache.db"
     )
     factory_cache_ttl = 15
-    
+
     patch_occlusion()
     setup_logging(log_level=getattr(logging, logging_level.upper()))
     log_ctod_start(port, tile_cache_path)
 
-    terrain_factory = TerrainFactory(tile_cache_path, db_name, factory_cache_ttl)
+    terrain_factory = TerrainFactory(
+        tile_cache_path, db_name, factory_cache_ttl)
     await terrain_factory.cache.initialize()
 
     globals["terrain_factory"] = terrain_factory
@@ -92,7 +98,8 @@ def layer_json(
     zoomGridSizes: str = queries.query_zoom_grid_sizes,
     defaultMaxError: int = queries.query_default_max_error,
     zoomMaxErrors: str = queries.query_zoom_max_errors,
-    extensions: str = queries.query_extensions
+    extensions: str = queries.query_extensions,
+    noData: int = queries.query_no_data
 ):
     params = queries.QueryParameters(
         cog,
@@ -105,7 +112,8 @@ def layer_json(
         zoomGridSizes,
         defaultMaxError,
         zoomMaxErrors,
-        extensions
+        extensions,
+        noData
     )
 
     return get_layer_json(globals["tms"], params)
@@ -132,6 +140,7 @@ async def terrain(
     defaultMaxError: int = queries.query_default_max_error,
     zoomMaxErrors: str = queries.query_zoom_max_errors,
     extensions: str = queries.query_extensions,
+    noData: int = queries.query_no_data
 ):
     params = queries.QueryParameters(
         cog,
@@ -144,7 +153,8 @@ async def terrain(
         zoomGridSizes,
         defaultMaxError,
         zoomMaxErrors,
-        extensions
+        extensions,
+        noData
     )
 
     use_extensions = get_extensions(extensions, request)

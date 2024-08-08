@@ -43,6 +43,7 @@ class CogReader:
         y: int,
         z: int,
         loop: AbstractEventLoop,
+        nodata: int,
         resampling_method: str = None,
         **kwargs: Any,
     ) -> ImageData:
@@ -69,12 +70,14 @@ class CogReader:
         if z < self.safe_level:
             if not self.unsafe:
                 logging.warning(
-                    f"Skipping unsafe tile {self.cog} {z,x,y}, generate more overviews or use --unsafe to load anyway"
+                    f"""Skipping unsafe tile {self.cog} {
+                        z, x, y}, generate more overviews or use --unsafe to load anyway"""
                 )
                 return None
             else:
                 logging.warning(
-                    f"Loading unsafe tile {self.cog} {z,x,y}, consider generating more overviews"
+                    f"""Loading unsafe tile {self.cog} {
+                        z, x, y}, consider generating more overviews"""
                 )
 
         if resampling_method is not None:
@@ -91,10 +94,11 @@ class CogReader:
             image_data = self.rio_reader.tile(
                 tile_z=z, tile_x=x, tile_y=y, align_bounds_with_dataset=True, **kwargs
             )
-            # For now set nodata to 0 if nodata is present in the metadata
-            # handle this better later
+
+            # Set nodata value
             if self.nodata_value is not None:
-                image_data.data[image_data.data == self.nodata_value] = float(0)
+                image_data.data[image_data.data ==
+                                self.nodata_value] = float(nodata)
 
             return image_data
 
@@ -129,14 +133,16 @@ class CogReader:
         dataset_width = self.rio_reader.dataset.width
         dataset_wgs_width = dataset_bounds.right - dataset_bounds.left
         pixels_per_wgs = dataset_width / dataset_wgs_width
-        pixels_per_tile_downsampled = 256 * max(self.rio_reader.dataset.overviews(1))
+        pixels_per_tile_downsampled = 256 * \
+            max(self.rio_reader.dataset.overviews(1))
 
         for z in range(0, 24):
             tile_bounds = self.tms.xy_bounds(Tile(x=0, y=0, z=z))
             tile_wgs = tile_bounds.right - tile_bounds.left
             tile_wgs_clipped = min(tile_wgs, dataset_wgs_width)
             tile_pixels_needed = tile_wgs_clipped * pixels_per_wgs
-            needed_tiles = math.ceil(tile_pixels_needed / pixels_per_tile_downsampled)
+            needed_tiles = math.ceil(
+                tile_pixels_needed / pixels_per_tile_downsampled)
 
             if needed_tiles <= 4:
                 self.safe_level = z
@@ -147,7 +153,8 @@ class CogReader:
 
         reader_info = self.rio_reader.info()
         self.nodata_value = (
-            reader_info.nodata_value if hasattr(reader_info, "nodata_value") else None
+            reader_info.nodata_value if hasattr(
+                reader_info, "nodata_value") else None
         )
 
     def __del__(self):

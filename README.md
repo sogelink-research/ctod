@@ -207,6 +207,7 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 
 - **cog**: Path or URL to COG file.
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
+- **noData** : The value to use for NoData in COG. Default (0)
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
 - **skipCache** : Set to true to prevent loading tiles from the cache. Default (False)
 - **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
@@ -246,7 +247,7 @@ The CTOD service has a very basic tile caching option, tiles can be retrieved an
 
 ### Nodata
 
-Nodata values in the COG are automatically set to 0 else it is likely that the meshing will go wrong, for now nodata should be handled in the source data (COG) In a future version we can try to fill up the nodata values based on surrounding pixels.
+Nodata values in the COG are automatically set to 0 else it is likely that the meshing will go wrong, for now nodata should be handled in the source data (COG) or pass `noData={value}` to the .terrain request to overwrite the default value `0`
 
 ### Used libraries
 

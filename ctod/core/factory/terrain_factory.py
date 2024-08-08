@@ -37,6 +37,7 @@ class TerrainFactory:
         terrain_request: TerrainRequest,
         cog_reader_pool: CogReaderPool,
         processor,
+        no_data: int,
     ) -> asyncio.Future:
         """Handle a TerrainRequest
 
@@ -46,14 +47,15 @@ class TerrainFactory:
         Returns:
             asyncio.Future: Future which will be set when the terrain is ready
         """
-        
+
         async with self.lock:
             # add terrain_request to terrain_requests cache
             self.terrain_requests[terrain_request.key] = terrain_request
 
-            # loop over wanted files and add to processing queue if needed                
-            processing_queue_keys = set(item.key for item in self.processing_queue._queue)
-            
+            # loop over wanted files and add to processing queue if needed
+            processing_queue_keys = set(
+                item.key for item in self.processing_queue._queue)
+
             for wanted_file in terrain_request.wanted_files:
                 # Check if the cog request is not already in the cache or processing queue or open requests
                 if (
@@ -70,6 +72,7 @@ class TerrainFactory:
                         wanted_file.y,
                         processor,
                         cog_reader_pool,
+                        no_data,
                         wanted_file.resampling_method,
                         wanted_file.generate_normals,
                     )
@@ -85,7 +88,7 @@ class TerrainFactory:
             asyncio.create_task(self.cache_changed())
 
         return await terrain_request.wait()
-            
+
     def start_periodic_check(self, interval: int = 5):
         """Start a task to periodically check the cache for expired items"""
 
@@ -107,7 +110,7 @@ class TerrainFactory:
 
         while not self.processing_queue.empty():
             cog_request = await self.processing_queue.get()
-            
+
             self.open_requests.add(cog_request.key)
             asyncio.create_task(self._process_cog_request(cog_request))
             del cog_request
@@ -129,7 +132,7 @@ class TerrainFactory:
 
     async def cache_changed(self, keys: list = None):
         """Triggered by the cache when a new item was added"""
-        
+
         # When checking if a cog request is already in cache, open requests
         # when a new requests comes in we need to have it somewhere so we don't directly
         # remove a key from the open_requests until we have it in the cache
@@ -138,7 +141,7 @@ class TerrainFactory:
                 self.open_requests = self.open_requests - set(keys)
 
         # If already processing the list set rerun to True
-        # We don't want to queue since process_terrain_request should pick up 
+        # We don't want to queue since process_terrain_request should pick up
         # everything that is available for processing
         if self.processing_terrain_requests:
             self.processing_terrain_requests_rerun = True
@@ -149,7 +152,7 @@ class TerrainFactory:
     async def _process_terrain_requests(self):
         """Check and run process on terrain requests when ready for processing"""
 
-        try:            
+        try:
             # Convert to use O(n) complexity instead of O(n^2) with set intersection
             cache_keys = set(self.cache.keys)
             terrain_keys = list(self.terrain_requests.items())
@@ -218,7 +221,7 @@ class TerrainFactory:
 
     def _get_executor(self):
         """Get the ThreadPoolExecutor"""
-        
+
         if self.executor is None:
             self.executor = ThreadPoolExecutor(max_workers=20)
 
@@ -230,14 +233,15 @@ class TerrainFactory:
         This is to try to free up memory when idle but seems to have no effect
         but has no negative impact either.
         """
-        
+
         if self.executor and self.executor._work_queue.empty():
             self.executor.shutdown(wait=False)
             self.executor = None
 
     def _print_debug_info(self):
         """Print debug info about the factory and it's state"""
-        
+
         logging.info(
-            f"Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache.keys)}, open requests: {len(self.open_requests)}, queue size: {self.processing_queue.qsize()}"
+            f"""Factory: terrain reqs: {len(self.terrain_requests)}, cache size: {len(self.cache.keys)}, open requests: {
+                len(self.open_requests)}, queue size: {self.processing_queue.qsize()}"""
         )

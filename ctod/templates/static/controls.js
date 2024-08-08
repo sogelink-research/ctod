@@ -7,6 +7,7 @@ var cogValue =
   "./ctod/files/test_cog.tif";
 var resamplingValue = "none";
 var skipCacheValue = false;
+var noDataValue = 0;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -23,6 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 function setupTweakpane() {
   minZoomValue = getIntParameterValue("minZoom", minZoomValue);
   maxZoomValue = getIntParameterValue("maxZoom", maxZoomValue);
+  noDataValue = getIntParameterValue("noData", noDataValue);
   cogValue = getStringParameterValue("cog", cogValue);
   resamplingValue = getStringParameterValue("resamplingMethod", resamplingValue);  
   skipCacheValue = getBoolParameterValue("skipCache", skipCacheValue);
@@ -149,6 +151,25 @@ function createTerrainPane() {
     updateTerrainProvider();
   });
 
+  noData = terrainFolder.addBlade({
+    view: "slider",
+    label: "noData",
+    min: -100,
+    max: 100,
+    value: noDataValue,
+    format: (e) => Math.round(e),
+  });
+
+  noData.on("change", (ev) => {
+    nod = Math.round(ev.value);
+    if (noDataValue === nod) {
+      return;
+    }
+
+    noDataValue = nod;
+    updateTerrainProvider();
+  });
+
   const resamplingMethod = terrainFolder.addBinding(PARAMS, "resampling", {
     options: {
       none: "none",
@@ -220,7 +241,7 @@ function createLayerPane() {
 }
 
 function updateTerrainProvider() {
-  setTerrainProvider(minZoomValue, maxZoomValue, cogValue, resamplingValue, skipCacheValue, meshingMethodValue);
+  setTerrainProvider(minZoomValue, maxZoomValue, noDataValue, cogValue, resamplingValue, skipCacheValue, meshingMethodValue);
 }
 
 function getStringParameterValue(param, defaultValue) {

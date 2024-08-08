@@ -47,12 +47,13 @@ function initializeLayers() {
 
   const minZoom = getUrlParamIgnoreCase("minZoom") || 1;
   const maxZoom = getUrlParamIgnoreCase("maxZoom") || 18;
+  const noData = getUrlParamIgnoreCase("noData") || 0;
   const cog =
   getUrlParamIgnoreCase("cog") ||
     "./ctod/files/test_cog.tif";
   const skipCache = getUrlParamIgnoreCase("skipCache") || false;
   const meshingMethod = getUrlParamIgnoreCase("meshingMethod") || "grid";
-  setTerrainProvider(minZoom, maxZoom, cog, "none", skipCache, meshingMethod);
+  setTerrainProvider(minZoom, maxZoom, noData, cog, "none", skipCache, meshingMethod);
 
   streetsLayer.show = true;
   satelliteLayer.show = false;
@@ -110,8 +111,8 @@ function configureViewer() {
   });
 }
 
-function setTerrainProvider(minZoom, maxZoom, cog, resamplingMethod, skipCache, meshingMethod) {
-  let terrainProviderUrl = `${window.location.origin}/tiles?minZoom=${minZoom}&maxZoom=${maxZoom}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
+function setTerrainProvider(minZoom, maxZoom, noData, cog, resamplingMethod, skipCache, meshingMethod) {
+  let terrainProviderUrl = `${window.location.origin}/tiles?minZoom=${minZoom}&maxZoom=${maxZoom}&noData=${noData}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
 
   if (resamplingMethod !== "none") {
     terrainProviderUrl += `&resamplingMethod=${resamplingMethod}`;

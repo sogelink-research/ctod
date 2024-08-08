@@ -25,6 +25,7 @@ class CogRequest:
         y,
         cog_processor: CogProcessor,
         cog_reader_pool: CogReaderPool,
+        no_data: int,
         resampling_method=None,
         generate_normals=False,
     ):
@@ -35,10 +36,13 @@ class CogRequest:
         self.y = y
         self.cog_processor = cog_processor
         self.cog_reader_pool = cog_reader_pool
+        self.no_data = no_data
         self.resampling_method = resampling_method
         self.generate_normals = generate_normals
-        self.key = generate_cog_cache_key(cog, cog_processor.get_name(), z, x, y)
-        self.tile_bounds = utils.get_tile_bounds(self.tms, self.x, self.y, self.z)
+        self.key = generate_cog_cache_key(
+            cog, cog_processor.get_name(), z, x, y)
+        self.tile_bounds = utils.get_tile_bounds(
+            self.tms, self.x, self.y, self.z)
         self.is_out_of_bounds = False
         self.data = None
         self.processed_data = None
@@ -75,7 +79,7 @@ class CogRequest:
     def _download(self, reader: CogReader, loop):
         kwargs = self.cog_processor.get_reader_kwargs()
         dowloaded_data = reader.download_tile(
-            self.x, self.y, self.z, loop, self.resampling_method, **kwargs
+            self.x, self.y, self.z, loop, self.no_data, self.resampling_method, **kwargs
         )
 
         if dowloaded_data is not None:

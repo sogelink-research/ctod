@@ -13,7 +13,7 @@ class CogReaderMosaic:
     """A reader for a Cloud Optimized GeoTIFF. This class is used to pool readers to 
     avoid opening and closing the same file many times.
     """
-    
+
     def __init__(self, pool, config: Any, cog: str, tms: TileMatrixSet, unsafe: bool = False):
         self.pool = pool
         self.config = config
@@ -21,26 +21,28 @@ class CogReaderMosaic:
         self.tms = tms
         self.unsafe = unsafe
         self.last_used = time.time()
-        
+
     def close(self):
         """Close the reader."""
-        
+
         # CogReaderMosaic doesn't have a reader itself, therefore it doesn't need to close
         pass
-        
+
     def tiler(self, src_path: str, *args, **kwargs) -> ImageData:
-        future = asyncio.run_coroutine_threadsafe(self.pool.get_reader(src_path, self.tms), args[3])
+        future = asyncio.run_coroutine_threadsafe(
+            self.pool.get_reader(src_path, self.tms), args[3])
         reader = future.result()
-        
-        data = reader.download_tile(args[0], args[1], args[2], args[3], **kwargs)
+
+        data = reader.download_tile(
+            args[0], args[1], args[2], args[3], **kwargs)
         reader.return_reader()
-                
+
         if not data:
             raise TileOutsideBounds
 
         return data
-        
-    def download_tile(self, x: int, y: int, z: int, loop: asyncio.AbstractEventLoop, resampling_method: str = None, **kwargs: Any) -> ImageData:
+
+    def download_tile(self, x: int, y: int, z: int, loop: asyncio.AbstractEventLoop, no_data: int, resampling_method: str = None, **kwargs: Any) -> ImageData:
         """Retrieve an image from a Cloud Optimized GeoTIFF based on a tile index.
 
         Args:
@@ -55,32 +57,39 @@ class CogReaderMosaic:
         Returns:
             ImageData: Image data from the Cloud Optimized GeoTIFF.
         """
-        
+
         tile_bounds = self.tms.xy_bounds(Tile(x=x, y=y, z=z))
         datasets = self._get_intersecting_datasets(tile_bounds)
-        
+
         if len(datasets) == 0:
             return None
 
         if not self._tile_intersects(tile_bounds, self.config["extent"]) or len(datasets) == 0:
             return None
-        
+
         if not self.unsafe and len(datasets) > 10:
-            logging.warning(f"Too many datasets intersecting with requested tile {z,x,y}, {len(datasets)}")
+            logging.warning(f"""Too many datasets intersecting with requested tile {
+                            z, x, y}, {len(datasets)}""")
             return None
-        
+
         if resampling_method is not None:
             kwargs["resampling_method"] = resampling_method
 
         try:
-            img, _ = mosaic_reader(datasets, self.tiler, x, y, z, loop, **kwargs)
+            img, _ = mosaic_reader(datasets, self.tiler,
+                                   x, y, z, loop, **kwargs)
+
+            # Set nodata value
+            if self.nodata_value is not None:
+                img.data[img.data == self.nodata_value] = float(no_data)
+
             return img
         except Exception as e:
-            return None   
-            
+            return None
+
     def return_reader(self):
         """Done with the reader, return it to the pool."""
-        
+
         self.last_used = time.time()
         self.pool.return_reader(self)
 
@@ -89,9 +98,9 @@ class CogReaderMosaic:
         for dataset in self.config["datasets"]:
             if self._tile_intersects(tile_bounds, dataset["extent"]):
                 intersecting_datasets.append(dataset["path"])
-                    
+
         return intersecting_datasets
-                
+
     def _tile_intersects(self, tile_bounds: BoundingBox, dataset_bounds: list) -> bool:
         """Check if a tile intersects with a dataset.
         Instead of check if inside we check if something is outside and 
@@ -104,9 +113,9 @@ class CogReaderMosaic:
         Returns:
             bool: True if bounds intersect, False otherwise
         """
-        
+
         if (tile_bounds.left > dataset_bounds[2] or tile_bounds.right < dataset_bounds[0] or
-            tile_bounds.bottom > dataset_bounds[3] or tile_bounds.top < dataset_bounds[1]):
+                tile_bounds.bottom > dataset_bounds[3] or tile_bounds.top < dataset_bounds[1]):
             return False
-        
+
         return True

@@ -79,6 +79,7 @@ class TerrainHandler:
         meshing_method = qp.get_meshing_method()
         resampling_method = qp.get_resampling_method()
         min_zoom = qp.get_min_zoom()
+        no_data = qp.get_no_data()
 
         # Try handling the request from the cache
         if not skip_cache:
@@ -98,7 +99,7 @@ class TerrainHandler:
         # Always return an empty tile at 0 or requested zoom level is lower than min_zoom
         if z == 0 or z < min_zoom:
             empty_tile = await self._return_empty_terrain(
-                tms, cog, meshing_method, z, x, y
+                tms, cog, meshing_method, z, x, y, no_data
             )
             return Response(content=empty_tile, media_type="application/octet-stream")
 
@@ -110,6 +111,7 @@ class TerrainHandler:
             z,
             x,
             y,
+            no_data,
             resampling_method,
             cog_processor,
             terrain_generator,
@@ -117,7 +119,7 @@ class TerrainHandler:
             extensions["octvertexnormals"],
         )
         quantized = await self.terrain_factory.handle_request(
-            tms, terrain_request, self.cog_reader_pool, cog_processor
+            tms, terrain_request, self.cog_reader_pool, cog_processor, no_data
         )
 
         await self._try_save_tile_to_cache(cog, tms, meshing_method, z, x, y, quantized)
@@ -125,13 +127,13 @@ class TerrainHandler:
         del terrain_generator
         del cog_processor
         del terrain_request
-        
+
         # ToDo: Add support for gzip
         # makes a bit of difference in size but is slower
-        #if 'gzip' in request.headers.get('Accept-Encoding', ''):
+        # if 'gzip' in request.headers.get('Accept-Encoding', ''):
         #    quantized = gzip.compress(quantized)
         #    headers = {"Content-Encoding": "gzip"}
-        #else:
+        # else:
         #    headers = {}
 
         return Response(content=quantized, media_type="application/octet-stream")
@@ -169,7 +171,7 @@ class TerrainHandler:
         return cog_processor(qp)
 
     async def _return_empty_terrain(
-        self, tms: TileMatrixSet, cog: str, meshing_method: str, z: int, x: int, y: int
+        self, tms: TileMatrixSet, cog: str, meshing_method: str, z: int, x: int, y: int, no_data: int
     ):
         """Return an empty terrain tile
         generated based on the tile index including geodetic surface normals
@@ -179,9 +181,10 @@ class TerrainHandler:
             z (int): z tile index
             x (int): x tile index
             y (int): y tile index
+            no_data (int): no data value
         """
 
-        quantized_empty_tile = generate_empty_tile(tms, z, x, y)
+        quantized_empty_tile = generate_empty_tile(tms, z, x, y, no_data)
         await self._try_save_tile_to_cache(
             cog, tms, meshing_method, z, x, y, quantized_empty_tile
         )
@@ -233,4 +236,3 @@ class TerrainHandler:
             await save_tile_to_disk(
                 self.tile_cache_path, cog, tms, meshing_method, z, x, y, data
             )
-
