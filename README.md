@@ -57,12 +57,9 @@ ghcr.io/sogelink-research/ctod:latest
 
 ### Future work (V1.1)
 
-- PMTiles for cached tiles?
-- Fill Nodata values on the fly
 - Mosaic dataset priority
 - Profiling to see where can gain some performance
 - Support multiple workers
-- Prevent others using a deployed service by using a dataset config
 - Extension support: Metadata, Watermask
 
 ## Settings
@@ -72,9 +69,11 @@ The following options can be set by supplying args to app.py or setting the envi
 |argument|environment variable|description|default|
 |-|-|-|-|
 |--tile-cache-path|CTOD_TILE_CACHE_PATH|Cache dir, not set = cache disabled|None|
+|--dataset-config-path|CTOD_DATASET_CONFIG_PATH|Path to the dataset JSON config file|./config/datasets.json|
 |--logging-level|CTOD_LOGGING_LEVEL|debug, info, warning, error, critical|info|
 |--port|CTOD_PORT|Port to run the service on|5000|
 |--unsafe|CTOD_UNSAFE|Load unsafe tiles (not enough COG overviews or too many datasets in 1 tile), can result in huge and or stuck requests||
+|--no-dynamic|CTOD_NO_DYNAMIC|Disable the dynamic endpoint, only datasets from the config can be used when set||
 
 ## Run CTOD
 
@@ -166,7 +165,7 @@ http://localhost:5000/redoc
 - **Method:** GET
 - **URL:** `http://localhost:5000/redoc`
 
-### Endpoint: `/tiles/layer.json`
+### Endpoint: `/tiles/dynamic/layer.json`
 
 Dynamically generates a layer.json based on the COG.
 
@@ -194,14 +193,14 @@ Dynamically generates a layer.json based on the COG.
 http://localhost:5000/tiles/layer.json?maxZoom=18&cog=./ctod/files/test_cog.tif
 ```
 
-### Endpoint: `/tiles/{z}/{x}/{y}.terrain`
+### Endpoint: `/tiles/dynamic/{z}/{x}/{y}.terrain`
 
 Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve empty tiles for zoom levels lower than minZoom. maxZoom is handled in the generated layer.json.
 
 #### Request
 
 - **Method:** GET
-- **URL:** `http://localhost:5000/tiles/{z}/{x}/{y}.terrain`
+- **URL:** `http://localhost:5000/tiles/dynamic/{z}/{x}/{y}.terrain`
 
 #### Parameters
 
@@ -225,7 +224,7 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 #### Example
 
 ```sh
-http://localhost:5000/tiles/17/134972/21614.terrain?minZoom=1&cog=./ctod/files/test_cog.tif
+http://localhost:5000/tiles/dynamic/17/134972/21614.terrain?minZoom=1&cog=./ctod/files/test_cog.tif
 ```
 
 ## More info
@@ -236,7 +235,7 @@ To use the CTOD terrain tiles in Cesium, create and set a `CesiumTerrainProvider
 
 ```js
 viewer.terrainProvider = new Cesium.CesiumTerrainProvider({
-    url: `https://ctod-service/tiles?minZoom=1&maxZoom=18&cog=MyCogPath`,
+    url: `https://ctod-service/tiles/dynamic/?minZoom=1&maxZoom=18&cog=MyCogPath`,
     requestVertexNormals: true
 });
 ```
