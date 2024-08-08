@@ -28,6 +28,7 @@ pyee = "^11.1.0"
 aiosqlite = "^0.20.0"
 aiohttp = "^3.9.3"
 aiofiles = "^23.2.1"
+jinja2 = "^3.1.4"
 
 [build-system]
 requires = ["poetry-core"]
