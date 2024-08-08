@@ -1,48 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <script type="module">
-      import { Pane } from "https://cdn.jsdelivr.net/npm/tweakpane@4.0.1/dist/tweakpane.min.js";
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cesium/1.106.0/Cesium.js"></script>
-    <script src="./static/utils.js"></script>
-    <script src="./static/index.js"></script>
-    <script src="./static/controls.js"></script>
-    <script src="./static/slopeshade.js"></script>
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/cesium/1.106.0/Widgets/widgets.min.css"
-      rel="stylesheet"
-    />
-
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datasets - CTOD</title>
     <style>
-      html,
-      body,
-      #cesiumContainer {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+        }
 
-      .map-widgets {
-        position: absolute;
-        top: var(--cds-spacing-05);
-        left: var(--cds-spacing-05);
-        z-index: 10;
-      }
+        .container {
+            background-color: #202020;
+            padding: 20px 40px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
 
-      .cesium-widget-credits {
-        display: none !important;
-      }
+        h1 {
+            color: #f4f4f4;
+            margin-bottom: 20px;
+        }
 
-      .tp-dfwv {
-        width: 275px !important;
-      }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        a {
+            color: #f4f4f4;
+            transition: color 0.3s;
+        }
+
+        a:hover {
+            color: hotpink;
+        }
+
+        hr.solid {
+            border-top: 1px solid #f4f4f4;
+        }
+
+        .info {
+            width: 100%;
+            background-color: #f4f4f4;
+            color: black;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
     </style>
-  </head>
-  <body>
-    <div id="cesiumContainer"></div>
-  </body>
+</head>
+<body>
+    <div class="container">
+        <img src="./preview/img/ctod_logo.jpg" />
+        <hr class="solid">
+        <h1>Datasets</h1>
+        <ul>
+            {% for link in links %}
+            <li><a href="{{ link.url }}">{{ link.name }}</a></li>
+            {% endfor %}
+
+            {% if dynamic is not none %}
+                <li><a href="{{ dynamic.url }}">{{ dynamic.name }}</a></li>
+            {% else %}
+                <div class="info">
+                    Dynamic datasets are disabled
+                </div>
+            {% endif %}
+        </ul>
+    </div>
+</body>
 </html>

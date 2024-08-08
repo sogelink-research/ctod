@@ -45,6 +45,7 @@ function initializeLayers() {
   gridLayer.show = false;
   coordinateLayer.show = false;
 
+  this.dataset = getUrlParamIgnoreCase("dataset") || undefined;
   const minZoom = getUrlParamIgnoreCase("minZoom") || 1;
   const maxZoom = getUrlParamIgnoreCase("maxZoom") || 18;
   const noData = getUrlParamIgnoreCase("noData") || 0;
@@ -80,9 +81,6 @@ function configureViewer() {
   viewer.scene.globe.depthTestAgainstTerrain = true;
   viewer.scene.globe.baseColor = Cesium.Color.WHITE;
   viewer.clock.shouldAnimate = true;
-  //viewer.useBrowserRecommendedResolution = false;
-  //viewer.resolutionScale = 1.0;
-  //viewer.scene.globe.maximumScreenSpaceError = 1.33;
   viewer.scene.screenSpaceCameraController.enableCollisionDetection = false;
   viewer.shadows = false;
   viewer.terrainShadows = Cesium.ShadowMode.ENABLED;
@@ -112,11 +110,19 @@ function configureViewer() {
 }
 
 function setTerrainProvider(minZoom, maxZoom, noData, cog, resamplingMethod, skipCache, meshingMethod) {
-  let terrainProviderUrl = `${window.location.origin}/tiles?minZoom=${minZoom}&maxZoom=${maxZoom}&noData=${noData}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
+
+  let terrainProviderUrl = `${window.location.origin}/tiles/dynamic?minZoom=${minZoom}&maxZoom=${maxZoom}&noData=${noData}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
 
   if (resamplingMethod !== "none") {
     terrainProviderUrl += `&resamplingMethod=${resamplingMethod}`;
   }
+
+
+  if(this.dataset) {
+    terrainProviderUrl = `${window.location.origin}/tiles/${this.dataset}`
+  }
+
+  console.log("url", terrainProviderUrl);
 
   terrainProvider = new Cesium.CesiumTerrainProvider({
     url: terrainProviderUrl,
@@ -128,9 +134,12 @@ function setTerrainProvider(minZoom, maxZoom, noData, cog, resamplingMethod, ski
 
   // go to cog location
   if (currentCog !== cog) {
-    fetch(
-      `${window.location.origin}/tiles/layer.json?maxZoom=${maxZoom}&cog=${cog}`
-    )
+    let layerJsonUrl = `${window.location.origin}/tiles/dynamic/layer.json?maxZoom=${maxZoom}&cog=${cog}`;
+    if(this.dataset) {
+      layerJsonUrl = `${window.location.origin}/tiles/${this.dataset}/layer.json`
+    }
+
+    fetch(layerJsonUrl)
       .then((response) => response.json())
       .then((layer) => {
         console.log(layer);

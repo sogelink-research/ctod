@@ -3,11 +3,11 @@ var module, pane, terrainFolder, layerFolder, materialFolder;
 var minZoomValue = 1;
 var maxZoomValue = 18;
 var meshingMethodValue = "grid";
-var cogValue =
-  "./ctod/files/test_cog.tif";
+var cogValue = "./ctod/files/test_cog.tif";
 var resamplingValue = "none";
 var skipCacheValue = false;
 var noDataValue = 0;
+var dataset = getUrlParamIgnoreCase("dataset") || undefined;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -22,35 +22,41 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function setupTweakpane() {
+  const showDynamicOptions = dataset === undefined;
   minZoomValue = getIntParameterValue("minZoom", minZoomValue);
   maxZoomValue = getIntParameterValue("maxZoom", maxZoomValue);
   noDataValue = getIntParameterValue("noData", noDataValue);
   cogValue = getStringParameterValue("cog", cogValue);
-  resamplingValue = getStringParameterValue("resamplingMethod", resamplingValue);  
+  resamplingValue = getStringParameterValue(
+    "resamplingMethod",
+    resamplingValue
+  );
   skipCacheValue = getBoolParameterValue("skipCache", skipCacheValue);
-  meshingMethodValue = getStringParameterValue("meshingMethod", meshingMethodValue);
+  meshingMethodValue = getStringParameterValue(
+    "meshingMethod",
+    meshingMethodValue
+  );
 
   pane = new module.Pane({
     title: "CTOD",
   });
 
-  const CacheOptions = {
-    skipCache: skipCacheValue
-  };  
+  if (showDynamicOptions) {
+    const CacheOptions = {
+      skipCache: skipCacheValue,
+    };
 
-  skipCache = pane.addBinding(
-    CacheOptions,
-    "skipCache"
-  );
+    skipCache = pane.addBinding(CacheOptions, "skipCache");
 
-  skipCache.on("change", (ev) => {
-    skipCacheValue = ev.value;
-    updateTerrainProvider();
-  });
+    skipCache.on("change", (ev) => {
+      skipCacheValue = ev.value;
+      updateTerrainProvider();
+    });
 
-  terrainFolder = pane.addFolder({
-    title: "Terrain",
-  });
+    terrainFolder = pane.addFolder({
+      title: "Terrain",
+    });
+  }
 
   layerFolder = pane.addFolder({
     title: "Layer",
@@ -61,16 +67,16 @@ function setupTweakpane() {
     expanded: false,
   });
 
-  createTerrainPane();
+  if (showDynamicOptions) {
+    createTerrainPane();
+  }
+
   createLayerPane();
   createMaterialPane();
 }
 
 function createMaterialPane() {
-  hillshadingEnabled = materialFolder.addBinding(
-    HillshadingOptions,
-    "enabled"
-  );
+  hillshadingEnabled = materialFolder.addBinding(HillshadingOptions, "enabled");
   hillshadingEnabled.on("change", (ev) => {
     if (!ev.value) {
       disableShading();
@@ -104,7 +110,7 @@ function createTerrainPane() {
   const PARAMS = {
     cog: cogValue,
     resampling: resamplingValue,
-    meshing: meshingMethodValue
+    meshing: meshingMethodValue,
   };
 
   cog = terrainFolder.addBinding(PARAMS, "cog", {});
@@ -194,7 +200,7 @@ function createTerrainPane() {
     options: {
       grid: "grid",
       delatin: "delatin",
-      martini: "martini"
+      martini: "martini",
     },
   });
 
@@ -241,7 +247,15 @@ function createLayerPane() {
 }
 
 function updateTerrainProvider() {
-  setTerrainProvider(minZoomValue, maxZoomValue, noDataValue, cogValue, resamplingValue, skipCacheValue, meshingMethodValue);
+  setTerrainProvider(
+    minZoomValue,
+    maxZoomValue,
+    noDataValue,
+    cogValue,
+    resamplingValue,
+    skipCacheValue,
+    meshingMethodValue
+  );
 }
 
 function getStringParameterValue(param, defaultValue) {
@@ -249,9 +263,15 @@ function getStringParameterValue(param, defaultValue) {
 }
 
 function getIntParameterValue(param, defaultValue) {
-  return getUrlParamIgnoreCase(param) ? parseInt(getUrlParamIgnoreCase(param)) : defaultValue;
+  return getUrlParamIgnoreCase(param)
+    ? parseInt(getUrlParamIgnoreCase(param))
+    : defaultValue;
 }
 
 function getBoolParameterValue(param, defaultValue) {
-  return getUrlParamIgnoreCase(param) ? getUrlParamIgnoreCase(param).toLowerCase() === "true" ? true : false : defaultValue;
+  return getUrlParamIgnoreCase(param)
+    ? getUrlParamIgnoreCase(param).toLowerCase() === "true"
+      ? true
+      : false
+    : defaultValue;
 }
