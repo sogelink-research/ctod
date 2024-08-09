@@ -6,25 +6,25 @@
     <title>Datasets - CTOD</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: "Courier New", Courier, "Lucida Console", "Monaco", monospace;
+            background-color: #202020;
             color: #f4f4f4;
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             height: 100vh;
+            box-sizing: border-box;
         }
 
         .container {
-            background-color: #202020;
-            padding: 20px 40px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 25px 50px;
         }
 
         h1 {
             color: #f4f4f4;
-            margin-bottom: 20px;
+            font-size: 28px;
+            margin-bottom: 0px;
         }
 
         ul {
@@ -41,17 +41,23 @@
             transition: color 0.3s;
         }
 
+        p {
+            color: #f4f4f4;
+            font-size: 14px;
+            margin: 5px 0px 15px 0px;
+        }
+
         a:hover {
             color: hotpink;
         }
 
         hr.solid {
-            border-top: 1px solid #f4f4f4;
+            border: 0;
+            border-top: 1px solid #f4f4f4;            
         }
 
         .info {
-            width: 100%;
-            background-color: #f4f4f4;
+            background-color: #F0F4C3;
             color: black;
             padding: 10px;
             border-radius: 5px;
@@ -64,19 +70,23 @@
         <img src="./preview/img/ctod_logo.jpg" />
         <hr class="solid">
         <h1>Datasets</h1>
+        <p>pre-configured and available datasets</p>
         <ul>
             {% for link in links %}
-            <li><a href="{{ link.url }}">{{ link.name }}</a></li>
+            <li>- <a href="{{ link.url }}">{{ link.name }}</a></li>
             {% endfor %}
-
-            {% if dynamic is not none %}
-                <li><a href="{{ dynamic.url }}">{{ dynamic.name }}</a></li>
-            {% else %}
-                <div class="info">
-                    Dynamic datasets are disabled
-                </div>
-            {% endif %}
         </ul>
+
+        <h1>Dynamic</h1>
+        <p>use any COG with the configuration you want</p>
+
+        {% if dynamic is not none %}
+        <li><a href="{{ dynamic.url }}">Open preview</a></li>
+        {% else %}
+            <div class="info">
+                DYNAMIC DATASETS TURNED OFF
+            </div>
+        {% endif %}
     </div>
 </body>
 </html>
