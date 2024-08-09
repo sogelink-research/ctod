@@ -61,9 +61,9 @@ class DatasetConfig:
                 return
 
             options = dataset.get('options', {})
-            defaultGridSize = options.get('defaultGridSize', None)
-            if defaultGridSize is not None:
-                defaultGridSize = json.dumps(defaultGridSize)
+            zoomMaxErrors = options.get('zoomMaxErrors', None)
+            if zoomMaxErrors is not None:
+                zoomMaxErrors = json.dumps(zoomMaxErrors)
 
             zoomGridSizes = options.get('zoomGridSizes', None)
             if zoomGridSizes is not None:
@@ -76,10 +76,10 @@ class DatasetConfig:
                 resamplingMethod=options.get('resamplingMethod', None),
                 meshingMethod=options.get('meshingMethod', None),
                 skipCache=options.get('skipCache', None),
-                defaultGridSize=defaultGridSize,
+                defaultGridSize=options.get('defaultGridSize', None),
                 zoomGridSizes=zoomGridSizes,
                 defaultMaxError=options.get('defaultMaxError', None),
-                zoomMaxErrors=options.get('zoomMaxErrors', None),
+                zoomMaxErrors=zoomMaxErrors,
                 extensions=options.get('extensions', None),
                 noData=options.get('noData', None),
             )
