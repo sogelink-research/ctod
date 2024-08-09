@@ -92,16 +92,14 @@ class TerrainHandler:
                 y,
             )
             if cached_tile is not None:
-                return Response(
-                    content=cached_tile, media_type="application/octet-stream"
-                )
+                return self._create_response(request, cached_tile)
 
         # Always return an empty tile at 0 or requested zoom level is lower than min_zoom
         if z == 0 or z < min_zoom:
             empty_tile = await self._return_empty_terrain(
                 tms, cog, meshing_method, z, x, y, no_data
             )
-            return Response(content=empty_tile, media_type="application/octet-stream")
+            return self._create_response(request, empty_tile)
 
         cog_processor = self._get_cog_processor(meshing_method, qp)
         terrain_generator = self._get_terrain_generator(meshing_method)
@@ -122,21 +120,42 @@ class TerrainHandler:
             tms, terrain_request, self.cog_reader_pool, cog_processor, no_data
         )
 
+        # compress the quantized mesh
+        quantized = gzip.compress(quantized)
+
         await self._try_save_tile_to_cache(cog, tms, meshing_method, z, x, y, quantized)
 
         del terrain_generator
         del cog_processor
         del terrain_request
 
-        # ToDo: Add support for gzip
-        # makes a bit of difference in size but is slower
-        # if 'gzip' in request.headers.get('Accept-Encoding', ''):
-        #    quantized = gzip.compress(quantized)
-        #    headers = {"Content-Encoding": "gzip"}
-        # else:
-        #    headers = {}
+        return self._create_response(request, quantized)
 
-        return Response(content=quantized, media_type="application/octet-stream")
+    def _create_response(self, request, tile):
+        """
+        Create a response object for the given request and tile.
+
+        Args:
+            request (Request): The request object.
+            tile (bytes): The gzipped tile data.
+
+        Returns:
+            Response: The response object.
+
+        Raises:
+            None
+
+        """
+
+        headers = {}
+
+        if self._gzip_requested(request):
+            headers["Content-Encoding"] = "gzip"
+        else:
+            # decompress the tile if gzip was not requested
+            tile = gzip.decompress(tile)
+
+        return Response(content=tile, media_type="application/octet-stream", headers=headers)
 
     def _get_terrain_generator(self, meshing_method: str) -> TerrainGenerator:
         """Get the terrain generator based on the meshing method
@@ -170,6 +189,18 @@ class TerrainHandler:
         )
         return cog_processor(qp)
 
+    def _gzip_requested(self, request: Request) -> bool:
+        """Check if the request accepts gzip encoding
+
+        Args:
+            request (Request): The request to check
+
+        Returns:
+            bool: True if the request accepts gzip encoding, False otherwise
+        """
+
+        return "gzip" in request.headers.get("Accept-Encoding", "")
+
     async def _return_empty_terrain(
         self, tms: TileMatrixSet, cog: str, meshing_method: str, z: int, x: int, y: int, no_data: int
     ):
@@ -185,6 +216,8 @@ class TerrainHandler:
         """
 
         quantized_empty_tile = generate_empty_tile(tms, z, x, y, no_data)
+        quantized_empty_tile = gzip.compress(quantized_empty_tile)
+
         await self._try_save_tile_to_cache(
             cog, tms, meshing_method, z, x, y, quantized_empty_tile
         )
