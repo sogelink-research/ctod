@@ -145,7 +145,7 @@ Dynamically generates a layer.json based on the COG. The supplied parameters wil
 - **Method:** GET
 - **URL:** `http://localhost:5000/tiles/dynamic/layer.json`
 
-#### Parameters
+#### Parameters <a name="parameters-sub"></a>
 
 See [Parameters](#parameters)
 
@@ -179,7 +179,7 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 - **Method:** GET
 - **URL:** `http://localhost:5000/tiles/dynamic/{z}/{x}/{y}.terrain`
 
-#### Parameters
+#### Parameters <a name="parameters-sub"></a>
 
 See [Parameters](#parameters)
 
@@ -204,7 +204,7 @@ Get a quantized mesh for tile index z, x, y. Replace {dataset} with a dataset co
 http://localhost:5000/tiles/demo/17/134972/21614.terrain
 ```
 
-### Parameters
+### Parameters <a name="parameters"></a>
 
 - **cog**: Path or URL to COG file.
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
