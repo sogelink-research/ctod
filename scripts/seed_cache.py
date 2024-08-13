@@ -423,7 +423,7 @@ def main():
     parser.add_argument(
         "--no-gzip",
         action="store_true",
-        help="Add --no-gzip to disable gzip compression. Defaults to False. Only use if you are gong to statically serve the tiles and don't want to use gzip compression.",
+        help="Add --no-gzip to disable gzip compression. Defaults to False. Only use if you are going to statically serve the tiles and don't want to use gzip compression.",
     )
 
     asyncio.run(run(parser))
