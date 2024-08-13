@@ -6,6 +6,7 @@ import sys
 import time
 import math
 import logging
+import gzip
 
 from concurrent.futures import Future
 from ctod.core import utils
@@ -40,6 +41,7 @@ def create_cache_folder(filepath: str):
             logging.error(f"Failed to create cache folder: {e}")
             sys.exit(1)
 
+
 def get_tile_range(layer_json: dict, zoom: int):
     available = layer_json["available"]
     info = available[zoom][0]
@@ -58,15 +60,17 @@ async def seed_cache(
     done_future: Future,
     port: int,
     request_count: int,
-    layer_json_max_zoom: int
+    layer_json_max_zoom: int,
+    no_gzip: bool
 ):
     create_cache_folder(output_filepath)
     logging.info(f"Starting to get layer.json")
     layer_json = get_layer_json(tms, input_filepath)
-    
+
     if layer_json_max_zoom:
-        save_layer_json(output_filepath, input_filepath, meshing_method, layer_json_max_zoom, layer_json)
-        
+        save_layer_json(output_filepath, input_filepath,
+                        meshing_method, layer_json_max_zoom, layer_json)
+
     logging.info(f"Finished getting layer.json")
 
     for zoom in zoom_levels:
@@ -84,19 +88,21 @@ async def seed_cache(
             overwrite,
             port,
             request_count,
+            no_gzip,
         )
 
     logging.info(f"Finished seeding cache, stopping...")
     done_future.set_result(None)
 
+
 def save_layer_json(output_filepath: str, file, meshing_method, layer_json_max_zoom, layer_json: dict):
     """Write a layer.json file that can be used to host the cache using a web server."""
-    
+
     json_copy = layer_json.copy()
     json_copy["tiles"] = ["{z}/{x}/{y}.terrain"]
     root_folder = get_root_folder(output_filepath, file, meshing_method)
     json_copy["available"] = json_copy["available"][:layer_json_max_zoom + 1]
-    
+
     try:
         with open(os.path.join(root_folder, "layer.json"), "w") as f:
             json.dump(json_copy, f)
@@ -104,6 +110,7 @@ def save_layer_json(output_filepath: str, file, meshing_method, layer_json_max_z
         logging.error(f"An error occurred saving layer.json: {e}")
     finally:
         logging.debug("Exiting save_layer_json")
+
 
 def interleave_bits(x, y):
     """Interleave the bits of x and y. This is a key part of generating the Z-order curve."""
@@ -133,6 +140,7 @@ async def generate_level(
     overwrite: bool,
     port: int,
     request_count: int,
+    no_gzip: bool
 ):
     tile_range = get_tile_range(layer_json, zoom)
     x_range = range(tile_range[0], tile_range[1] + 1)
@@ -140,7 +148,8 @@ async def generate_level(
     morton_order = generate_z_order_grid(x_range, y_range)
 
     logging.info(
-        f"Generating cache for zoom level {zoom} with {len(x_range) * len(y_range)} tile(s)"
+        f"""Generating cache for zoom level {zoom} with {
+            len(x_range) * len(y_range)} tile(s)"""
     )
 
     start_time = time.time()
@@ -164,6 +173,7 @@ async def generate_level(
                 params,
                 overwrite,
                 port,
+                no_gzip,
             )
         )
         tasks.append(task)
@@ -181,7 +191,8 @@ async def generate_level(
             estimated_time_minutes = math.floor(estimated_time / 60)
             estimated_time_seconds = math.ceil(estimated_time % 60)
             logging.info(
-                f"Done {generated_tiles}/{len(x_range) * len(y_range)} for zoom {zoom}. Estimated time remaining: {estimated_time_minutes:02d}:{estimated_time_seconds:02d}"
+                f"""Done {generated_tiles}/{len(x_range) * len(y_range)} for zoom {zoom}. Estimated time remaining: {
+                    estimated_time_minutes:02d}:{estimated_time_seconds:02d}"""
             )
 
         if generated_tiles == len(x_range) * len(y_range):
@@ -189,7 +200,8 @@ async def generate_level(
             elapsed_time_minutes = math.floor(elapsed_time / 60)
             elapsed_time_seconds = math.ceil(elapsed_time % 60)
             logging.info(
-                f"Generation completed for zoom level {zoom}. Total elapsed time: {elapsed_time_minutes:02d}:{elapsed_time_seconds:02d}"
+                f"""Generation completed for zoom level {zoom}. Total elapsed time: {
+                    elapsed_time_minutes:02d}:{elapsed_time_seconds:02d}"""
             )
 
     if tasks:
@@ -209,6 +221,7 @@ async def generate_tile(
     params: str,
     overwrite: bool,
     port: int,
+    no_gzip: bool
 ):
 
     # If overwrite is false, skip generating and caching the tile
@@ -219,17 +232,26 @@ async def generate_tile(
         if cached_tile is not None:
             return
 
-    tile_url = f"http://localhost:{port}/tiles/{z}/{x}/{y}.terrain?cog={input_filepath}&skipCache=true&meshingMethod={meshing_method}"
+    tile_url = f"""http://localhost:{port}/tiles/dynamic/{z}/{x}/{y}.terrain?cog={
+        input_filepath}&skipCache=true&meshingMethod={meshing_method}"""
     if params is not None:
         tile_url += f"&{params}"
 
-    headers = {"Accept": "application/vnd.quantized-mesh;extensions=octvertexnormals"}
+    headers = {
+        "Accept": "application/vnd.quantized-mesh;extensions=octvertexnormals",
+        "Accept-Encoding": "gzip",
+    }
+
     async with aiohttp.ClientSession() as session:
         async with session.get(tile_url, headers=headers) as response:
             try:
                 if response.status == 200:
                     tile_data = await response.read()
                     ix, iy, iz = utils.invert_y(tms, x, y, z)
+
+                    if not no_gzip:
+                        tile_data = gzip.compress(tile_data)
+
                     await save_tile_to_disk(
                         output_filepath,
                         input_filepath,
@@ -242,10 +264,12 @@ async def generate_tile(
                     )
                 else:
                     logging.error(
-                        f"Failed to generate tile {x} {y} {z}. Status code: {response.status}"
+                        f"""Failed to generate tile {x} {y} {
+                            z}. Status code: {response.status}"""
                     )
             except Exception as e:
-                logging.error(f"Failed to generate tile {x} {y} {z}. Error: {e}")
+                logging.error(f"""Failed to generate tile {
+                              x} {y} {z}. Error: {e}""")
 
 
 async def clear_tasks():
@@ -260,7 +284,9 @@ async def run(parser: argparse.ArgumentParser):
         port = int(args.port)
         request_count = int(args.request_count)
         zoom_levels = list(map(int, args.zoom_levels.split("-")))
-        layer_json_max_zoom = int(args.export_layer_json) if args.export_layer_json else None
+        layer_json_max_zoom = int(
+            args.export_layer_json) if args.export_layer_json else None
+        no_gzip = args.no_gzip
 
         # Clear all arguments
         sys.argv = []
@@ -301,13 +327,15 @@ async def run(parser: argparse.ArgumentParser):
                 done_future,
                 port,
                 request_count,
-                layer_json_max_zoom
+                layer_json_max_zoom,
+                no_gzip
             )
         )
 
         # Wait for the done_future to be set
         while not done_future.done():
-            await asyncio.sleep(0.1)  # Sleep for a short period to prevent busy waiting
+            # Sleep for a short period to prevent busy waiting
+            await asyncio.sleep(0.1)
 
         # Once the done_future is set, stop the server
         server.should_exit = True
@@ -323,6 +351,7 @@ async def run(parser: argparse.ArgumentParser):
     finally:
         if loop:
             loop.stop()
+
 
 def main():
     setup_logging()
@@ -391,7 +420,14 @@ def main():
         help="Add --export-layer-json followed by the max zoom level to create a layer.json in the root directory.",
     )
 
+    parser.add_argument(
+        "--no-gzip",
+        action="store_true",
+        help="Add --no-gzip to disable gzip compression. Defaults to False. Only use if you are gong to statically serve the tiles and don't want to use gzip compression.",
+    )
+
     asyncio.run(run(parser))
-    
+
+
 if __name__ == "__main__":
     main()
