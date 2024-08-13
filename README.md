@@ -51,14 +51,13 @@ ghcr.io/sogelink-research/ctod:latest
 
 ### V1.0 (In progress)
 
-- Refactoring
 - Cleanup viewer code
 - Update Wiki
 
 ### Future work (V1.1)
 
 - Mosaic dataset priority
-- Profiling to see where can gain some performance
+- Profiling to see where we can gain some performance
 - Support multiple workers
 - Extension support: Metadata, Watermask
 
@@ -73,7 +72,7 @@ The following options can be set by supplying args to app.py or setting the envi
 |--logging-level|CTOD_LOGGING_LEVEL|debug, info, warning, error, critical|info|
 |--port|CTOD_PORT|Port to run the service on|5000|
 |--unsafe|CTOD_UNSAFE|Load unsafe tiles (not enough COG overviews or too many datasets in 1 tile), can result in huge and or stuck requests||
-|--no-dynamic|CTOD_NO_DYNAMIC|Disable the dynamic endpoint, only datasets from the config can be used when set||
+|--no-dynamic|CTOD_NO_DYNAMIC|Disable the dynamic endpoint, only datasets configured in the config can be used||
 
 ## Run CTOD
 
@@ -107,33 +106,26 @@ To enable caching, supply --tile-cache-path `path` with the start command.
 poetry run start --tile-cache-path ./ctod_cache
 ```
 
+## --no-dynamic
+
+The idea is that an user can use every COG that the CTOD service can access with the parameters the user wants, this can expose a problem when CTOD is available on the internet. A random user can use your CTOD instance to generate his own .terrain tiles or even mess up a cache by supplying weird grid sized. 
+
+To prevent a user to use any cog with any parameter the endpoints are split up into `/tiles/dynamic/..` and `/tiles/{dataset}/..`. The dynamic endpoint accepts parameters and is flexible to use where the `/tiles/{dataset}` endpoint can only be [configured](#dataset-configuration) with a config file and ignores parameters.
+
+The dynamic endpoint can be disabled by supplying the option `--no-dynamic` to CTOD or set the environment variable `CTOD_NO_DYNAMIC` to `TRUE`. This way only configured datasets can be used with set parameters.
+
 ## Endpoints
 
-Endpoint documentation for your running CTOD service can also be found under `/doc` and `/redoc`
+Endpoint documentation for your running CTOD service can also be found under `/doc`.
 
 ### Endpoint: `/`
 
-Returns a sample Cesium viewer, all values can be changed using the control panel, default settings can be overwritten on startup of the viewer with the below parameters, see the example aswell.
+Shows the available datasets and a link to open a preview viewer using the dataset.
 
 #### Request
 
 - **Method:** GET
 - **URL:** `http://localhost:5000`
-
-#### Parameters
-
-- **minZoom** : The mininimum zoomlevel, When set CTOD returns empty tiles for zoom < minZoom, Default (1)
-- **maxZoom** : Maximum zoom level that will be requested by the client, Default (18)
-- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default (None)
-- **cog** : Path or URL to COG file.
-- **skipCache** : Set to true to prevent loading tiles from the cache if cache is enabled in CTOD. Default (False)
-- **meshingMethod**: Meshing method to use: grid, martini, delatin, Default (grid)
-
-#### Example
-
-```sh
-http://localhost:5000?minZoom=1&maxZoom=18&cog=./ctod/files/test_cog.tif
-```
 
 ### Endpoint: `/docs`
 
@@ -144,53 +136,38 @@ The CTOD OpenAPI documentation with Swagger UI
 - **Method:** GET
 - **URL:** `http://localhost:5000/docs`
 
-#### Example
-
-```sh
-http://localhost:5000/docs
-```
-
-### Endpoint: `/redoc`
-
-The CTOD OpenAPI documentation with ReDoc UI
-
-#### Example
-
-```sh
-http://localhost:5000/redoc
-```
-
-#### Request
-
-- **Method:** GET
-- **URL:** `http://localhost:5000/redoc`
-
 ### Endpoint: `/tiles/dynamic/layer.json`
 
-Dynamically generates a layer.json based on the COG.
+Dynamically generates a layer.json based on the COG. The supplied parameters will be picked up by Cesium when using this url for the CesiumTerrainProvider and passed down to the .terrain requests.
 
 #### Request
 
 - **Method:** GET
-- **URL:** `http://localhost:5000/tiles/layer.json`
+- **URL:** `http://localhost:5000/tiles/dynamic/layer.json`
 
 #### Parameters
 
-- **cog**: Path or URL to COG file.
-- **maxZoom** : The max zoomlevel for the terrain. Default (18)
-- **minZoom** : The min zoomlevel for the terrain. Default (0)
-- **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
-- **skipCache** : Set to true to prevent loading tiles from the cache. Default (False)
-- **meshingMethod**: The Meshing method to use: 'grid', 'martini', 'delatin'
-- **defaultGridSize**: The default grid size (amount of rows/cols) to use if there is no specific zoomGridSizes defined for a requested tile, Default (20)
-- **zoomGridSizes**: Per level defined grid size, when requested zoom for tile not specified use defaultGridSize. Default when defaultGridSize and zoomGridSizes not set (`{"15": 25, "16": 25, "17": 30, "18": 35, "19": 35, "20": 35, "21": 35, "22": 35}`)
-- **defaultMaxError**: The default max triangulation error in meters to use, Default (4)
-- **zoomMaxErrors**: Per level defined max error, when requested zoom for tile is not specified use defaultMaxError. Default when defaultMaxError and zoomMaxError not set (`{"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}`)
+See [Parameters](#parameters)
 
 #### Example
 
 ```sh
-http://localhost:5000/tiles/layer.json?maxZoom=18&cog=./ctod/files/test_cog.tif
+http://localhost:5000/tiles/dynamic/layer.json?maxZoom=18&cog=./ctod/files/test_cog.tif
+```
+
+### Endpoint: `/tiles/{dataset}/layer.json`
+
+Dynamically generates a layer.json for a configured dataset, replace {dataset} with a dataset configured in `datasets.json`, all supplied url parameters will be ignored.
+
+#### Request
+
+- **Method:** GET
+- **URL:** `http://localhost:5000/tiles/{dataset}/layer.json`
+
+#### Example
+
+```sh
+http://localhost:5000/tiles/demo/layer.json
 ```
 
 ### Endpoint: `/tiles/dynamic/{z}/{x}/{y}.terrain`
@@ -204,8 +181,34 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 
 #### Parameters
 
+See [Parameters](#parameters)
+
+#### Example
+
+```sh
+http://localhost:5000/tiles/dynamic/17/134972/21614.terrain?minZoom=1&cog=./ctod/files/test_cog.tif
+```
+
+### Endpoint: `/tiles/{dataset}/{z}/{x}/{y}.terrain`
+
+Get a quantized mesh for tile index z, x, y. Replace {dataset} with a dataset configured in `datasets.json`, all supplied url parameters will be ignored.
+
+#### Request
+
+- **Method:** GET
+- **URL:** `http://localhost:5000/tiles/{dataset}/{z}/{x}/{y}.terrain`
+
+#### Example
+
+```sh
+http://localhost:5000/tiles/demo/17/134972/21614.terrain
+```
+
+### Parameters
+
 - **cog**: Path or URL to COG file.
 - **minZoom** : The min zoomlevel for the terrain. Default (0)
+- **maxZoom** : The max zoomlevel for the terrain. Default (18)
 - **noData** : The value to use for NoData in COG. Default (0)
 - **resamplingMethod** : Resampling method for COG: 'nearest', 'bilinear', 'cubic', 'cubic_spline', 'lanczos', 'average', 'mode', 'gauss', 'rms'. Default 'none'
 - **skipCache** : Set to true to prevent loading tiles from the cache. Default (False)
@@ -221,10 +224,35 @@ Get a quantized mesh for tile index z, x, y. Set the minZoom value to retrieve e
 - **defaultMaxError**: The default max triangulation error in meters to use, Default (4)
 - **zoomMaxErrors**: Per level defined max error, when requested zoom for tile is not specified use defaultMaxError. Default when defaultMaxError and zoomMaxError not set (`{"15": 8, "16": 5, "17": 3, "18": 2, "19": 1, "20": 0.5, "21": 0.3, "22": 0.1}`)
 
-#### Example
 
-```sh
-http://localhost:5000/tiles/dynamic/17/134972/21614.terrain?minZoom=1&cog=./ctod/files/test_cog.tif
+## Dataset configuration
+
+It may be usefull to preconfigure a dataset in a config file, this makes the url cleaner and a user cannot override settings which can result in different configured tiles in the cache. When the option `--no-dynamic` is supplied to CTOD only datasets from the config can be used and the dynamic datasets are disabled.
+
+By default CTOD tries to look for the dataset config at `./config/datasets.json`, this can be overwritten with `--dataset-config-path` or environment variable `CTOD_DATASET_CONFIG_PATH`. When the config could not be found or has an error CTOD continues and logs an error.
+
+The exact same parameters as described in the topic [parameters](#parameters) can be used in the `.json` file for a dataset.
+
+### Example config
+
+```json
+{
+    "datasets": [
+        {
+            "name": "demo",
+            "options": {
+                "cog": "./ctod/files/test_cog.tif",
+                "minZoom": 13,
+                "maxZoom": 17,
+                "noData": 0,
+                "meshingMethod": "grid",
+                "skipCache": false,
+                "zoomGridSizes": {"13": 5, "14": 10, "15": 15, "16": 20, "17": 25, "18": 30, "19": 35}
+            }
+        },
+        ...
+    ]
+}
 ```
 
 ## More info
