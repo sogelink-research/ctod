@@ -3,8 +3,9 @@ var viewer,
   streetsLayer,
   satelliteLayer,
   gridLayer,
-  coordinateLayer;
-var currentCog;
+  coordinateLayer,
+  currentCog,
+  dataset;
 
 function loadCesium() {
   Cesium.Ion.defaultAccessToken = undefined;
@@ -26,49 +27,64 @@ function loadCesium() {
   });
 
   initializeLayers();
+  initTerrainProvider();
   configureViewer();
   setShading();
 }
 
 function initializeLayers() {
-  streetsLayer = createImageryLayer(
-    "https://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer"
+  streetsLayer = new Cesium.ImageryLayer(
+    new Cesium.OpenStreetMapImageryProvider({
+      url: "https://tile.openstreetmap.org/",
+      fileExtension: "png",
+      maximumLevel: 19,
+      credit: "© OpenStreetMap contributors",
+    })
   );
-  satelliteLayer = createImageryLayer(
-    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer"
+
+  // Unable to find a free open satellite imagery provider
+  // disabling for now
+  satelliteLayer = createImageryLayerWithProvider(
+    new Cesium.ArcGisMapServerImageryProvider({
+      //url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+    })
   );
   gridLayer = createImageryLayerWithProvider(new Cesium.GridImageryProvider());
   coordinateLayer = createImageryLayerWithProvider(
     new Cesium.TileCoordinatesImageryProvider()
   );
 
+  // initial state
   gridLayer.show = false;
   coordinateLayer.show = false;
 
-  this.dataset = getUrlParamIgnoreCase("dataset") || undefined;
-  const minZoom = getUrlParamIgnoreCase("minZoom") || 1;
-  const maxZoom = getUrlParamIgnoreCase("maxZoom") || 18;
-  const noData = getUrlParamIgnoreCase("noData") || 0;
-  const cog =
-  getUrlParamIgnoreCase("cog") ||
-    "./ctod/files/test_cog.tif";
-  const skipCache = getUrlParamIgnoreCase("skipCache") || false;
-  const meshingMethod = getUrlParamIgnoreCase("meshingMethod") || "grid";
-  setTerrainProvider(minZoom, maxZoom, noData, cog, "none", skipCache, meshingMethod);
-
-  streetsLayer.show = true;
-  satelliteLayer.show = false;
-
+  // add layers to viewer
   [streetsLayer, satelliteLayer, gridLayer, coordinateLayer].forEach(
     (layer) => {
       viewer.imageryLayers.add(layer);
     }
   );
+
+  useStreetLayer();
 }
 
-function createImageryLayer(url) {
-  const provider = new Cesium.ArcGisMapServerImageryProvider({ url });
-  return new Cesium.ImageryLayer(provider);
+function initTerrainProvider() {
+  dataset = getUrlParamIgnoreCase("dataset") || undefined;
+  const minZoom = getUrlParamIgnoreCase("minZoom") || 1;
+  const maxZoom = getUrlParamIgnoreCase("maxZoom") || 18;
+  const noData = getUrlParamIgnoreCase("noData") || 0;
+  const cog = getUrlParamIgnoreCase("cog") || "./ctod/files/test_cog.tif";
+  const skipCache = getUrlParamIgnoreCase("skipCache") || false;
+  const meshingMethod = getUrlParamIgnoreCase("meshingMethod") || "grid";
+  setTerrainProvider(
+    minZoom,
+    maxZoom,
+    noData,
+    cog,
+    "none",
+    skipCache,
+    meshingMethod
+  );
 }
 
 function createImageryLayerWithProvider(provider) {
@@ -94,10 +110,9 @@ function configureViewer() {
   date.setUTCHours(13, 0, 0, 0);
   viewer.clock.currentTime = Cesium.JulianDate.fromDate(date);
 
-  // Remove cesiums ugly click
-  viewer.cesiumWidget.screenSpaceEventHandler.setInputAction((e) => {
-    // do nothing
-  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  // Remove cesiums ugly click popup
+  viewer.cesiumWidget.screenSpaceEventHandler.setInputAction((e) => {},
+  Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
   viewer.camera.setView({
     destination: new Cesium.Cartesian3.fromDegrees(5.33195, 60.29969, 2000),
@@ -109,20 +124,26 @@ function configureViewer() {
   });
 }
 
-function setTerrainProvider(minZoom, maxZoom, noData, cog, resamplingMethod, skipCache, meshingMethod) {
+function setTerrainProvider(
+  minZoom,
+  maxZoom,
+  noData,
+  cog,
+  resamplingMethod,
+  skipCache,
+  meshingMethod
+) {
+  let terrainProviderUrl = `${window.location.origin}/tiles`;
 
-  let terrainProviderUrl = `${window.location.origin}/tiles/dynamic?minZoom=${minZoom}&maxZoom=${maxZoom}&noData=${noData}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
-
-  if (resamplingMethod !== "none") {
-    terrainProviderUrl += `&resamplingMethod=${resamplingMethod}`;
+  // chosen dataset or dynamic
+  if (dataset) {
+    terrainProviderUrl = `${terrainProviderUrl}/${dataset}`;
+  } else {
+    terrainProviderUrl = `${terrainProviderUrl}/dynamic?minZoom=${minZoom}&maxZoom=${maxZoom}&noData=${noData}&cog=${cog}&skipCache=${skipCache}&meshingMethod=${meshingMethod}`;
+    if (resamplingMethod !== "none") {
+      terrainProviderUrl += `&resamplingMethod=${resamplingMethod}`;
+    }
   }
-
-
-  if(this.dataset) {
-    terrainProviderUrl = `${window.location.origin}/tiles/${this.dataset}`
-  }
-
-  console.log("url", terrainProviderUrl);
 
   terrainProvider = new Cesium.CesiumTerrainProvider({
     url: terrainProviderUrl,
@@ -130,41 +151,47 @@ function setTerrainProvider(minZoom, maxZoom, noData, cog, resamplingMethod, ski
   });
 
   viewer.terrainProvider = terrainProvider;
-  updateViewer();
-
-  // go to cog location
   if (currentCog !== cog) {
-    let layerJsonUrl = `${window.location.origin}/tiles/dynamic/layer.json?maxZoom=${maxZoom}&cog=${cog}`;
-    if(this.dataset) {
-      layerJsonUrl = `${window.location.origin}/tiles/${this.dataset}/layer.json`
-    }
-
-    fetch(layerJsonUrl)
-      .then((response) => response.json())
-      .then((layer) => {
-        console.log(layer);
-        const bounds = layer.cogBounds;
-
-        viewer.camera.setView({
-          destination: new Cesium.Cartesian3.fromDegrees(
-            (bounds[0] + bounds[2]) / 2,
-            (bounds[1] + bounds[3]) / 2,
-            2000
-          ),
-          orientation: {
-            heading: Cesium.Math.toRadians(0),
-            pitch: Cesium.Math.toRadians(-50),
-            roll: 0.0,
-          },
-        });
-      });
+    zoomToCOG(cog, maxZoom);
   }
+
   currentCog = cog;
+  updateViewer();
+}
+
+function zoomToCOG(cog, maxZoom) {
+  let layerJsonUrl = `${window.location.origin}/tiles`;
+
+  if (dataset) {
+    layerJsonUrl = `${layerJsonUrl}/${dataset}/layer.json`;
+  } else {
+    layerJsonUrl = `${layerJsonUrl}/dynamic/layer.json?maxZoom=${maxZoom}&cog=${cog}`;
+  }
+
+  fetch(layerJsonUrl)
+    .then((response) => response.json())
+    .then((layer) => {
+      console.log(layer);
+      const bounds = layer.cogBounds;
+
+      viewer.camera.setView({
+        destination: new Cesium.Cartesian3.fromDegrees(
+          (bounds[0] + bounds[2]) / 2,
+          (bounds[1] + bounds[3]) / 2,
+          2000
+        ),
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          pitch: Cesium.Math.toRadians(-50),
+          roll: 0.0,
+        },
+      });
+    });
 }
 
 function handleLayerChange(value) {
   noBackground();
-  if (value === "Streets") {
+  if (value === "OSM") {
     useStreetLayer();
   } else if (value === "Satellite") {
     useSatelliteLayer();
@@ -174,16 +201,19 @@ function handleLayerChange(value) {
 function noBackground() {
   streetsLayer.show = false;
   satelliteLayer.show = false;
+  setAttribution(undefined);
 }
 
 function useStreetLayer() {
   streetsLayer.show = true;
   satelliteLayer.show = false;
+  setAttribution(streetsLayer);
 }
 
 function useSatelliteLayer() {
   streetsLayer.show = false;
   satelliteLayer.show = true;
+  setAttribution(satelliteLayer);
 }
 
 function setWireframe(enabled) {
@@ -205,4 +235,10 @@ function updateViewer() {
     viewer.clock.tick();
     viewer.clock.shouldAnimate = false;
   }
+}
+
+function setAttribution(layer) {
+  credit = layer ? layer?._imageryProvider?._credit?._html : "";
+
+  document.getElementById("attribution").innerText = credit;
 }

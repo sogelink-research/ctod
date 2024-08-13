@@ -1,5 +1,4 @@
 var module, pane, terrainFolder, layerFolder, materialFolder;
-
 var minZoomValue = 1;
 var maxZoomValue = 18;
 var meshingMethodValue = "grid";
@@ -41,41 +40,17 @@ function setupTweakpane() {
     title: "CTOD",
   });
 
-  if (showDynamicOptions) {
-    const CacheOptions = {
-      skipCache: skipCacheValue,
-    };
+  createLayerPane(showDynamicOptions);
+  createTerrainPane(showDynamicOptions);
+  createMaterialPane(showDynamicOptions);
+}
 
-    skipCache = pane.addBinding(CacheOptions, "skipCache");
-
-    skipCache.on("change", (ev) => {
-      skipCacheValue = ev.value;
-      updateTerrainProvider();
-    });
-
-    terrainFolder = pane.addFolder({
-      title: "Terrain",
-    });
-  }
-
-  layerFolder = pane.addFolder({
-    title: "Layer",
-  });
-
+function createMaterialPane() {
   materialFolder = pane.addFolder({
     title: "Shading",
     expanded: false,
   });
 
-  if (showDynamicOptions) {
-    createTerrainPane();
-  }
-
-  createLayerPane();
-  createMaterialPane();
-}
-
-function createMaterialPane() {
   hillshadingEnabled = materialFolder.addBinding(HillshadingOptions, "enabled");
   hillshadingEnabled.on("change", (ev) => {
     if (!ev.value) {
@@ -106,12 +81,27 @@ function createMaterialPane() {
   }
 }
 
-function createTerrainPane() {
+function createTerrainPane(showDynamicOptions) {
+  if (!showDynamicOptions) {
+    return;
+  }
+
+  terrainFolder = pane.addFolder({
+    title: "Terrain",
+  });
+
   const PARAMS = {
+    skipCache: skipCacheValue,
     cog: cogValue,
     resampling: resamplingValue,
     meshing: meshingMethodValue,
   };
+
+  skipCache = terrainFolder.addBinding(PARAMS, "skipCache");
+  skipCache.on("change", (ev) => {
+    skipCacheValue = ev.value;
+    updateTerrainProvider();
+  });
 
   cog = terrainFolder.addBinding(PARAMS, "cog", {});
   cog.on("change", (ev) => {
@@ -211,8 +201,12 @@ function createTerrainPane() {
 }
 
 function createLayerPane() {
+  layerFolder = pane.addFolder({
+    title: "Layer",
+  });
+
   const PARAMS = {
-    layer: "Streets",
+    layer: "OSM",
     wireframe: false,
     grid: false,
     coords: false,
@@ -220,8 +214,8 @@ function createLayerPane() {
 
   const layer = layerFolder.addBinding(PARAMS, "layer", {
     options: {
-      Streets: "Streets",
-      Satellite: "Satellite",
+      OSM: "OSM",
+      //Satellite: "Satellite",
       Off: "Off",
     },
   });
