@@ -136,6 +136,15 @@ The CTOD OpenAPI documentation with Swagger UI
 - **Method:** GET
 - **URL:** `http://localhost:5000/docs`
 
+### Endpoint: `/status`
+
+Can be used to check if CTOD is online
+
+#### Request
+
+- **Method:** GET
+- **URL:** `http://localhost:5000/status`
+
 ### Endpoint: `/tiles/dynamic/layer.json`
 
 Dynamically generates a layer.json based on the COG. The supplied parameters will be picked up by Cesium when using this url for the CesiumTerrainProvider and passed down to the .terrain requests.

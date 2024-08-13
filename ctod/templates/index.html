@@ -27,6 +27,12 @@
             margin-bottom: 0px;
         }
 
+        h2 {
+            color: #f4f4f4cc;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
         ul {
             list-style-type: none;
             padding: 0;
@@ -45,6 +51,17 @@
             color: #f4f4f4;
             font-size: 14px;
             margin: 5px 0px 15px 0px;
+        }
+
+        .indent {
+            margin-left: 20px;
+        }
+
+        .status {
+            font-size: 11px;
+            width: 100%;
+            display: flex;
+            justify-content: right;
         }
 
         a:hover {
@@ -68,25 +85,44 @@
 <body>
     <div class="container">
         <img src="./preview/img/ctod_logo.jpg" />
+        <div class="status">
+            {{ status }}
+        </div>
         <hr class="solid">
+        
         <h1>Datasets</h1>
-        <p>pre-configured and available datasets</p>
-        <ul>
-            {% for link in links %}
-            <li>- <a href="{{ link.url }}">{{ link.name }}</a></li>
-            {% endfor %}
-        </ul>
-
-        <h1>Dynamic</h1>
-        <p>use any COG with the configuration you want</p>
-
-        {% if dynamic is not none %}
-        <li><a href="{{ dynamic.url }}">Open preview</a></li>
-        {% else %}
-            <div class="info">
-                DYNAMIC DATASETS TURNED OFF
+        <div class="indent">
+            <h2>Configured</h2>
+            <p>pre-configured CTOD datasets</p>
+            <div class="indent">
+                <ul>
+                    {% for link in links %}
+                    <li>- <a href="{{ link.url }}">{{ link.name }}</a></li>
+                    {% endfor %}
+                </ul>
             </div>
-        {% endif %}
+
+            <h2>Dynamic</h2>
+            <p>use any COG with the configuration you want</p>
+            {% if dynamic is not none %}
+                <div class="indent">
+                    <li><a href="{{ dynamic.url }}">Open preview</a></li>            
+                </div>
+
+                {% else %}
+                <div class="info">
+                    DYNAMIC DATASETS TURNED OFF
+                </div>   
+            {% endif %}
+        </div>
+
+        <h1>Documentation</h1>
+        <div class="indent">
+            <ul>
+                <li>- <a href="./docs">OpenAPI</a></li>
+                <li>- <a href="./redoc">ReDoc</a></li>
+            </ul>
+        </div>
     </div>
 </body>
 </html>

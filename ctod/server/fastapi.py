@@ -1,10 +1,11 @@
 import os
-
-from fastapi.templating import Jinja2Templates
-from ctod.config.dataset_config import DatasetConfig
 import ctod.server.queries as queries
 import logging
 
+from datetime import datetime, timezone
+from fastapi.templating import Jinja2Templates
+from ctod.config.dataset_config import DatasetConfig
+from ctod.server.handlers.status import get_server_status
 from ctod.core import utils
 from ctod.server.helpers import get_extensions
 from ctod.args import parse_args, get_value
@@ -76,6 +77,7 @@ async def lifespan(app: FastAPI):
     globals["no_dynamic"] = no_dynamic
     globals["dataset_config"] = dataset_config
     globals["tms"] = utils.get_tms()
+    globals["start_time"] = datetime.now(timezone.utc)
 
     yield
 
@@ -107,7 +109,20 @@ async def index(request: Request):
     if globals["no_dynamic"]:
         dynamic = None
 
-    return templates.TemplateResponse("index.html", {"request": request, "links": links, "dynamic": dynamic})
+    status = get_server_status(globals["start_time"])
+
+    return templates.TemplateResponse("index.html", {"request": request, "links": links, "dynamic": dynamic, "status": status})
+
+
+@app.get(
+    "/status",
+    summary="Get the status of the server",
+    description="Get the start time and uptime of the server",
+    response_class=JSONResponse,
+)
+def status():
+    """Return the server status"""
+    return get_server_status(globals["start_time"])
 
 
 @app.get(
