@@ -49,16 +49,13 @@ ghcr.io/sogelink-research/ctod:latest
 
 ## ToDo
 
-### V1.0 (In progress)
-
-- Cleanup viewer code
-- Update Wiki
-
 ### Future work (V1.1)
 
+- Option to disable preview/homepage
 - Mosaic dataset priority
-- Profiling to see where we can gain some performance
 - Support multiple workers
+- Disable GIL with new Python version?
+- Profiling to see where we can gain some performance
 - Extension support: Metadata, Watermask
 
 ## Settings
