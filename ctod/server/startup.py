@@ -2,6 +2,7 @@ import logging
 import quantized_mesh_encoder.occlusion
 
 from ctod.core.math import compute_magnitude
+from ctod.server.settings import Settings
 
 
 def patch_occlusion():
@@ -24,19 +25,25 @@ def setup_logging(log_level=logging.INFO):
     )
 
 
-def log_ctod_start(port: int, tile_cache_path: str):
+def log_ctod_start(settings: Settings):
     """Log message when starting the service
 
     Args:
-        port (int): Port the service is running on
-        tile_cache_path (str): Path to the tile cache
+        settings (Settings): CTOD settings loaded from args or environment variables
     """
 
     logging.info("-----------------------")
     logging.info(f"CTOD Started")
     logging.info("-----------------------")
-    logging.info(f"Port: {port}")
-    logging.info(f"Caching: {'enabled' if tile_cache_path else 'disabled'}")
-    if tile_cache_path:
-        logging.info(f"Caching Path: {tile_cache_path}")
+    logging.info(f"Port:\t\t {settings.port}")
+    logging.info(
+        f"Caching:\t\t {'enabled' if settings.tile_cache_path else 'disabled'}")
+    if settings.tile_cache_path:
+        logging.info(f"Caching Path:\t {settings.tile_cache_path}")
+    logging.info(f"Dataset Config:\t {settings.dataset_config_path}")
+    logging.info(f"Logging Level:\t {settings.logging_level}")
+    logging.info(f"DB Name:\t\t {settings.db_name}")
+    logging.info(f"Dev Mode:\t\t {settings.dev}")
+    logging.info(f"Unsafe:\t\t {settings.unsafe}")
+    logging.info(f"No Dynamic:\t\t {settings.no_dynamic}")
     logging.info("-----------------------")
