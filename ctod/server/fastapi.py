@@ -8,14 +8,14 @@ from ctod.config.dataset_config import DatasetConfig
 from ctod.server.handlers.status import get_server_status
 from ctod.core import utils
 from ctod.server.helpers import get_extensions
-from ctod.args import parse_args, get_value
 from ctod.core.cog.cog_reader_pool import CogReaderPool
 from ctod.core.factory.terrain_factory import TerrainFactory
 from ctod.server.handlers.layer import get_layer_json
 from ctod.server.handlers.terrain import TerrainHandler
+from ctod.server.settings import Settings
 from ctod.server.startup import patch_occlusion, setup_logging, log_ctod_start
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
@@ -29,57 +29,30 @@ templates = Jinja2Templates(directory=path_template_files)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    args = parse_args()
-    unsafe = get_value(args, "unsafe", os.environ.get(
-        "CTOD_UNSAFE", False), False)
-
-    no_dynamic = get_value(args, "no_dynamic", os.environ.get(
-        "CTOD_NO_DYNAMIC", False), False)
-
-    tile_cache_path = get_value(
-        args, "tile_cache_path", os.environ.get(
-            "CTOD_TILE_CACHE_PATH", None), None
-    )
-
-    port = get_value(args, "port", int(
-        os.environ.get("CTOD_PORT", 5000)), 5000)
-
-    logging_level = get_value(
-        args, "logging_level", os.environ.get(
-            "CTOD_LOGGING_LEVEL", "info"), "info"
-    )
-
-    db_name = get_value(
-        args, "db_name", os.environ.get(
-            "CTOD_DB_NAME", "factory_cache.db"), "factory_cache.db"
-    )
-
-    factory_cache_ttl = 15
-
-    dataset_config_path = get_value(
-        args, "dataset_config_path", os.environ.get(
-            "CTOD_DATASET_CONFIG_PATH", "./config/datasets.json"), "./config/datasets.json"
-    )
+    settings = Settings()
 
     patch_occlusion()
-    setup_logging(log_level=getattr(logging, logging_level.upper()))
-    log_ctod_start(port, tile_cache_path)
+    setup_logging(log_level=getattr(logging, settings.logging_level.upper()))
+    log_ctod_start(settings)
+    await setup_globals(settings)
 
-    dataset_config = DatasetConfig(dataset_config_path)
+    yield
+
+
+async def setup_globals(settings: Settings):
+    dataset_config = DatasetConfig(settings.dataset_config_path)
     terrain_factory = TerrainFactory(
-        tile_cache_path, db_name, factory_cache_ttl)
+        settings.tile_cache_path, settings.db_name, settings.factory_cache_ttl)
     await terrain_factory.cache.initialize()
 
     globals["terrain_factory"] = terrain_factory
     globals["terrain_factory"].start_periodic_check()
-    globals["cog_reader_pool"] = CogReaderPool(unsafe)
-    globals["tile_cache_path"] = tile_cache_path
-    globals["no_dynamic"] = no_dynamic
+    globals["cog_reader_pool"] = CogReaderPool(settings.unsafe)
+    globals["tile_cache_path"] = settings.tile_cache_path
+    globals["no_dynamic"] = settings.no_dynamic
     globals["dataset_config"] = dataset_config
     globals["tms"] = utils.get_tms()
     globals["start_time"] = datetime.now(timezone.utc)
-
-    yield
 
 
 app = FastAPI(
@@ -87,7 +60,7 @@ app = FastAPI(
     title="CTOD",
     description="Cesium Terrain On Demand",
     summary="CTOD fetches Cesium terrain tiles from Cloud Optimized GeoTIFFs dynamically, avoiding extensive caching to save time and storage space. By generating tiles on demand, it optimizes efficiency and reduces resource consumption compared to traditional caching methods.",
-    version="0.9.0",
+    version="1.0.1",
     debug=False,
 )
 
