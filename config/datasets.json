@@ -11,19 +11,6 @@
                 "skipCache": false,
                 "zoomGridSizes": {"13": 5, "14": 10, "15": 15, "16": 20, "17": 25, "18": 30, "19": 35}
             }
-        },
-        {
-            "name": "ahn",
-            "options": {
-                "cog": "https://storage.googleapis.com/sogelink-research-public/rasters/cog/ahn4/ahn.vrt",
-                "minZoom": 13,
-                "maxZoom": 19,
-                "noData": 42,
-                "meshingMethod": "grid",
-                "skipCache": false,
-                "defaultGridSize": 10,
-                "zoomGridSizes": {"14": 10, "15": 15, "16": 20, "17": 25, "18": 30, "19": 35}
-            }
         }
     ]
 }
