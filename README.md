@@ -47,9 +47,7 @@ ghcr.io/sogelink-research/ctod:latest
 ![CTOD](./img/ctod.jpg)
 ***Wireframe and mesh in Cesium using grid based meshing***
 
-## ToDo
-
-### Future work (V1.1)
+## Future work (V1.1.0)
 
 - Option to disable preview/homepage
 - Mosaic dataset priority
