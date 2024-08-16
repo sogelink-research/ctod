@@ -68,6 +68,7 @@ The following options can be set by supplying args to app.py or setting the envi
 |--port|CTOD_PORT|Port to run the service on|5000|
 |--unsafe|CTOD_UNSAFE|Load unsafe tiles (not enough COG overviews or too many datasets in 1 tile), can result in huge and or stuck requests||
 |--no-dynamic|CTOD_NO_DYNAMIC|Disable the dynamic endpoint, only datasets configured in the config can be used||
+|--cors-allow-origins|CTOD_CORS_ALLOW_ORIGINS|Set allowed origins for CORS|http://localhost:5000|
 
 ## Run CTOD
 
