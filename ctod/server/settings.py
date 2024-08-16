@@ -28,6 +28,8 @@ class Settings:
                                 help="When unsafe all tiles will be loaded, even if there are not enough overviews")
             parser.add_argument("--no-dynamic", action="store_true",
                                 help="Disable the endpoints for dynamic terrain based on query parameters")
+            parser.add_argument(
+                "--cors-allow-origins", help="Allowed origins for CORS, comma separated, Default: http://localhost:5000")
             args = parser.parse_args()
 
         # Get values from command-line arguments or environment variables
@@ -39,6 +41,8 @@ class Settings:
             "CTOD_LOGGING_LEVEL", "info")
         self.db_name = args.db_name or os.getenv(
             "CTOD_DB_NAME", "factory_cache.db")
+        self.cors_allow_origins = args.cors_allow_origins or os.getenv(
+            "CTOD_CORS_ALLOW_ORIGINS", "http://localhost:5000")
         self.port = args.port or int(os.getenv("CTOD_PORT", 5000))
 
         # Handle boolean flags

@@ -17,6 +17,7 @@ from ctod.server.startup import patch_occlusion, setup_logging, log_ctod_start
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 
@@ -25,12 +26,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 path_static_files = os.path.join(current_dir, "../templates/preview")
 path_template_files = os.path.join(current_dir, "../templates")
 templates = Jinja2Templates(directory=path_template_files)
+settings = Settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = Settings()
-
     patch_occlusion()
     setup_logging(log_level=getattr(logging, settings.logging_level.upper()))
     log_ctod_start(settings)
@@ -62,6 +62,14 @@ app = FastAPI(
     summary="CTOD fetches Cesium terrain tiles from Cloud Optimized GeoTIFFs dynamically, avoiding extensive caching to save time and storage space. By generating tiles on demand, it optimizes efficiency and reduces resource consumption compared to traditional caching methods.",
     version="1.0.1",
     debug=False,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allow_origins.split(","),
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["*"],
 )
 
 # Mount the static files directory to serve the Cesium viewer
