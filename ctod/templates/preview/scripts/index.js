@@ -7,11 +7,11 @@ var viewer,
   currentCog,
   dataset;
 
-function loadCesium() {
+async function loadCesium() {
   Cesium.Ion.defaultAccessToken = undefined;
 
   viewer = new Cesium.Viewer("cesiumContainer", {
-    imageryProvider: false,
+    baseLayer: false,
     requestRenderMode: true,
     timeline: false,
     animation: false,
@@ -26,13 +26,13 @@ function loadCesium() {
     msaaSamples: 1,
   });
 
-  initializeLayers();
-  initTerrainProvider();
+  await initializeLayers();
+  await initTerrainProvider();
   configureViewer();
   setShading();
 }
 
-function initializeLayers() {
+async function initializeLayers() {
   streetsLayer = new Cesium.ImageryLayer(
     new Cesium.OpenStreetMapImageryProvider({
       url: "https://tile.openstreetmap.org/",
@@ -68,7 +68,7 @@ function initializeLayers() {
   useStreetLayer();
 }
 
-function initTerrainProvider() {
+async function initTerrainProvider() {
   dataset = getUrlParamIgnoreCase("dataset") || undefined;
   const minZoom = getUrlParamIgnoreCase("minZoom") || 1;
   const maxZoom = getUrlParamIgnoreCase("maxZoom") || 18;
@@ -76,7 +76,7 @@ function initTerrainProvider() {
   const cog = getUrlParamIgnoreCase("cog") || "./ctod/files/test_cog.tif";
   const skipCache = getUrlParamIgnoreCase("skipCache") || false;
   const meshingMethod = getUrlParamIgnoreCase("meshingMethod") || "grid";
-  setTerrainProvider(
+  await setTerrainProvider(
     minZoom,
     maxZoom,
     noData,
@@ -124,7 +124,7 @@ function configureViewer() {
   });
 }
 
-function setTerrainProvider(
+async function setTerrainProvider(
   minZoom,
   maxZoom,
   noData,
@@ -145,10 +145,12 @@ function setTerrainProvider(
     }
   }
 
-  terrainProvider = new Cesium.CesiumTerrainProvider({
-    url: terrainProviderUrl,
-    requestVertexNormals: true,
-  });
+  terrainProvider = await Cesium.CesiumTerrainProvider.fromUrl(
+    terrainProviderUrl,
+    {
+      requestVertexNormals: true,
+    }
+  );
 
   viewer.terrainProvider = terrainProvider;
   if (currentCog !== cog) {
