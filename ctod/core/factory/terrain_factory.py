@@ -4,6 +4,7 @@ import psutil
 
 from concurrent.futures import ThreadPoolExecutor
 from ctod.core.cog.cog_request import CogRequest
+from ctod.core.cog.reader.cog_reader import NoOverviewsError
 from ctod.core.terrain.terrain_request import TerrainRequest
 from ctod.core.cog.cog_reader_pool import CogReaderPool
 from ctod.core.factory.factory_cache import FactoryCache
@@ -116,9 +117,41 @@ class TerrainFactory:
             del cog_request
 
     async def _process_cog_request(self, cog_request):
-        """Process a CogRequest by downloading the data and adding data to the cache"""
+        """Process a CogRequest by downloading the data and adding data to the cache.
 
-        await cog_request.download_tile_async(self._get_executor())
+        Runs as a fire-and-forget task, so it must resolve every request it
+        starts: an unhandled exception here both crashes the task ("Task
+        exception was never retrieved") and strands the key in open_requests,
+        leaving the dependent terrain request's waiter hanging forever.
+        """
+
+        try:
+            await cog_request.download_tile_async(self._get_executor())
+        except NoOverviewsError as e:
+            # Deterministic, raster-wide skip: a DSM without overviews has no
+            # safe zoom level at any tile. Cache it as out-of-bounds so the
+            # normal cache_changed path resolves the waiter (empty tile) and
+            # clears open_requests, exactly like a real out-of-bounds tile.
+            logging.warning(
+                f"Skipping no-overview cog {cog_request.cog} "
+                f"{cog_request.z}/{cog_request.x}/{cog_request.y}: {e}"
+            )
+            cog_request.data = None
+            cog_request.processed_data = None
+            cog_request.is_out_of_bounds = True
+        except Exception as e:
+            # Unexpected/transient (e.g. S3/GDAL) failure: do NOT cache it.
+            # An empty cache entry here would persist into the durable .terrain
+            # cache and serve flat ground over real data with a 200. Instead
+            # fail the dependent terrain requests directly so the tile returns a
+            # retriable 5xx, and clear open_requests so it can be retried.
+            logging.error(
+                f"Failed cog request {cog_request.cog} "
+                f"{cog_request.z}/{cog_request.x}/{cog_request.y}: {e}"
+            )
+            await self._fail_cog_request(cog_request.key, e)
+            return
+
         await self.cache.add(
             cog_request.key,
             {
@@ -129,6 +162,43 @@ class TerrainFactory:
         )
 
         del cog_request
+
+    async def _fail_cog_request(self, key, exception):
+        """Resolve a failed CogRequest without caching false-empty terrain.
+
+        Under the factory lock, clears the key from open_requests and detaches
+        every terrain request waiting on it; then fails those waiters. Resolving
+        the waiters here (instead of via cache presence, as cache_changed does)
+        is what prevents a strand when we deliberately do not cache the result.
+
+        A terrain request not yet registered when we fail sees the key neither
+        cached nor in open_requests, so its handle_request pass re-queues a
+        fresh CogRequest and it is retried rather than hung.
+        """
+
+        async with self.lock:
+            self.open_requests.discard(key)
+            affected = [
+                (tkey, treq)
+                for tkey, treq in list(self.terrain_requests.items())
+                if key in treq.wanted_file_keys and not treq.result_set
+            ]
+            for tkey, _ in affected:
+                self.terrain_requests.pop(tkey, None)
+
+        # Fail the waiters outside the lock. Guard on future.done() rather than
+        # result_set: a waiter whose future was cancelled (e.g. the HTTP client
+        # disconnected) is done with result_set still False, and set_exception
+        # would raise InvalidStateError. Isolate each call so one already-done
+        # future cannot abort delivery to the rest (which would strand them,
+        # since they have already been popped from terrain_requests).
+        for _, treq in affected:
+            if treq.future.done():
+                continue
+            try:
+                treq.set_exception(exception)
+            except asyncio.InvalidStateError:
+                pass
 
     async def cache_changed(self, keys: list = None):
         """Triggered by the cache when a new item was added"""

@@ -9,6 +9,14 @@ from rio_tiler.models import ImageData
 from typing import Any
 
 
+class NoOverviewsError(Exception):
+    """A COG/DSM has no overviews, so no safe zoom level exists.
+
+    ctod treats this as a global skip for the raster (no terrain at any zoom),
+    rather than crashing on ``max([])`` while computing the safe zoom level.
+    """
+
+
 class CogReader:
     """A reader for a Cloud Optimized GeoTIFF. This class is used to pool readers to
     avoid opening and closing the same file many times.
@@ -133,8 +141,13 @@ class CogReader:
         dataset_width = self.rio_reader.dataset.width
         dataset_wgs_width = dataset_bounds.right - dataset_bounds.left
         pixels_per_wgs = dataset_width / dataset_wgs_width
-        pixels_per_tile_downsampled = 256 * \
-            max(self.rio_reader.dataset.overviews(1))
+
+        overviews = self.rio_reader.dataset.overviews(1)
+        if not overviews:
+            raise NoOverviewsError(
+                f"{self.cog} has no overviews; cannot compute a safe zoom level"
+            )
+        pixels_per_tile_downsampled = 256 * max(overviews)
 
         for z in range(0, 24):
             tile_bounds = self.tms.xy_bounds(Tile(x=0, y=0, z=z))
