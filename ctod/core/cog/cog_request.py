@@ -67,10 +67,19 @@ class CogRequest:
         """
 
         loop = asyncio.get_event_loop()
+        # get_reader can raise (e.g. NoOverviewsError) before a reader is bound;
+        # the finally below only runs for an acquired reader, so a download that
+        # throws in the executor still returns its reader to the pool.
+        # Caveat: if THIS task is cancelled (event-loop shutdown) the finally
+        # returns the reader while its executor thread may still be running. A
+        # disconnecting HTTP client cancels the terrain waiter, not this
+        # decoupled cog task, so in practice that only happens at shutdown.
         reader = await self.cog_reader_pool.get_reader(self.cog, self.tms)
-        future = loop.run_in_executor(executor, self._download, reader, loop)
-        await future
-        reader.return_reader()
+        try:
+            future = loop.run_in_executor(executor, self._download, reader, loop)
+            await future
+        finally:
+            reader.return_reader()
 
         del loop
         del reader
